@@ -57,15 +57,9 @@
         #app-container { display: none; width: 100%; height: 100%; }
         
         #sidebar { 
-            width: 260px; 
-            background: var(--sidebar-bg); 
-            display: flex; flex-direction: column; 
-            box-shadow: 2px 0 15px rgba(0,0,0,0.1); 
-            z-index: 100; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            flex-shrink: 0;
-            overflow-x: hidden;
-            white-space: nowrap;
+            width: 260px; background: var(--sidebar-bg); display: flex; flex-direction: column; 
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            flex-shrink: 0; overflow-x: hidden; white-space: nowrap;
         }
         #sidebar.collapsed { width: 0; min-width: 0; opacity: 0; }
 
@@ -80,10 +74,25 @@
         #subject-list::-webkit-scrollbar { width: 5px; }
         #subject-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
         
-        .subject-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; color: var(--sidebar-text); transition: 0.3s; display: flex; align-items: center; gap: 10px; }
+        .subject-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; color: var(--sidebar-text); transition: 0.3s; display: flex; align-items: center; gap: 10px; justify-content: space-between;}
         .subject-item:hover { background: rgba(255,255,255,0.05); color: var(--sidebar-hover); }
         .subject-item.active { background: var(--primary-color); color: white; }
-        #add-subject-btn { margin: 20px; padding: 12px; background: rgba(255,255,255,0.1); color: white; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; cursor: pointer; }
+
+        /* UI Hành động sửa/xóa Môn học */
+        .subject-actions { display: flex; gap: 8px; opacity: 0; transition: 0.2s; }
+        .subject-item:hover .subject-actions, .subject-item.active .subject-actions { opacity: 1; }
+        .subject-actions i { color: #a0aec0; transition: 0.2s; font-size: 13px;}
+        .subject-actions i:hover { color: #ff7675; transform: scale(1.1);}
+        .subject-item.active .subject-actions i { color: rgba(255,255,255,0.7); }
+        .subject-item.active .subject-actions i:hover { color: #fff; }
+        
+        /* KHU VỰC NÚT IMPORT / EXPORT */
+        .sidebar-actions { padding: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+        #add-subject-btn { padding: 12px; background: rgba(255,255,255,0.1); color: white; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; cursor: pointer; width: 100%; transition: 0.3s;}
+        #add-subject-btn:hover { background: rgba(255,255,255,0.2); }
+        .io-buttons { display: flex; gap: 8px; width: 100%; }
+        .btn-io { flex: 1; padding: 10px; background: rgba(255,255,255,0.05); color: var(--sidebar-text); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-io:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); }
 
         #main-content { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg-body); padding: 15px; gap: 15px; overflow: hidden; position: relative; min-width: 0;}
         
@@ -93,8 +102,16 @@
         
         #tabs-container { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; align-items: center; }
         #tabs-container::-webkit-scrollbar { display: none; }
-        .tab { padding: 10px 15px; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; white-space: nowrap; border: 1px solid var(--border-light); }
+        .tab { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; white-space: nowrap; border: 1px solid var(--border-light); transition: 0.2s;}
         .tab.active { background: var(--text-dark); color: white; border-color: var(--text-dark); }
+        
+        /* UI Hành động sửa/xóa Tab */
+        .tab-actions { display: flex; gap: 6px; color: #a0aec0; }
+        .tab.active .tab-actions { color: rgba(255,255,255,0.7); }
+        .tab-actions i { cursor: pointer; transition: 0.2s; font-size: 12px; }
+        .tab-actions i:hover { color: #ff7675; transform: scale(1.2); }
+        .tab.active .tab-actions i:hover { color: #fff; }
+
         #add-tab-btn { padding: 10px 15px; background: white; border: 1px dashed var(--border-light); border-radius: 10px; cursor: pointer; flex-shrink: 0; font-size: 14px; white-space: nowrap;}
 
         .actions { display: flex; gap: 10px; flex-shrink: 0; align-items: center;}
@@ -112,12 +129,22 @@
         .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid var(--border-light) !important; padding: 10px !important; background: #fdfdfd; font-family: 'Inter', sans-serif;}
         .ql-container.ql-snow { border: none !important; }
 
-        /* TÍNH NĂNG ẨN HIỆN TÀI LIỆU */
-        .collapsed-content .ql-editor { display: none !important; }
-        .collapsed-content::after { 
-            content: 'Nội dung đang được ẩn. Nhấn vào biểu tượng 👁️ phía trên để xem bài học.'; 
-            display: flex; justify-content: center; align-items: center; 
-            height: 200px; color: var(--sidebar-text); font-style: italic; font-weight: 600; font-size: 15px;
+        /* NÚT ẨN/HIỆN ĐÁP ÁN (FLASHCARD) */
+        .ql-toolbar .ql-answer { color: #e84393; width: 30px; }
+        .ql-toolbar .ql-answer:hover { color: #d63031; }
+        
+        .sn-answer-block {
+            border-left: 4px solid #00b894; background: #e8f7f0; padding: 10px 15px; margin: 10px 0;
+            border-radius: 4px 8px 8px 4px; position: relative; transition: 0.2s ease-in-out;
+        }
+        .sn-answer-block.hidden {
+            height: 42px; padding: 0; overflow: hidden; background: #dfe6e9;
+            border-left-color: #b2bec3; cursor: pointer; display: flex; align-items: center;
+        }
+        .sn-answer-block.hidden * { opacity: 0 !important; pointer-events: none; }
+        .sn-answer-block.hidden::after {
+            content: '👁️ Đáp án đang ẩn (Nhấn vào để xem)'; position: absolute; left: 15px;
+            color: #2d3436; font-size: 14px; font-weight: 600;
         }
 
         #overlay-mobile { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
@@ -193,9 +220,18 @@
                     <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
                 </div>
             </div>
+            
             <div class="sidebar-header">Môn học</div>
             <ul id="subject-list"></ul>
-            <button id="add-subject-btn">+ Thêm Môn</button>
+            
+            <div class="sidebar-actions">
+                <button id="add-subject-btn">+ Thêm Môn</button>
+                <div class="io-buttons">
+                    <button class="btn-io" onclick="exportSubjectJSON()" title="Xuất Môn học ra file JSON"><i class="fa-solid fa-download"></i> Tải Xuất</button>
+                    <button class="btn-io" onclick="document.getElementById('import-file').click()" title="Nhập Môn học từ file"><i class="fa-solid fa-upload"></i> Tải Nhập</button>
+                    <input type="file" id="import-file" style="display:none" accept=".json" onchange="importSubjectJSON(event)">
+                </div>
+            </div>
         </div>
 
         <div id="main-content">
@@ -208,16 +244,12 @@
                 </div>
                 
                 <div class="actions">
-                    <button class="btn-action" id="toggle-view-btn" onclick="toggleEditorContent()" title="Ẩn/Hiện nội dung để làm bài tập">
-                        <i id="eye-icon" class="fa-solid fa-eye-slash"></i>
-                    </button>
-                    
                     <select class="view-select" onchange="changeZoom(this.value)" title="Phóng to/Thu nhỏ chữ">
-                        <option value="14px">Zoom: 14</option>
-                        <option value="16px" selected>Zoom: 16</option>
-                        <option value="20px">Zoom: 20</option>
-                        <option value="24px">Zoom: 24</option>
-                        <option value="28px">Zoom: 28</option>
+                        <option value="14px">Cỡ chữ: 14</option>
+                        <option value="16px" selected>Cỡ chữ: 16</option>
+                        <option value="20px">Cỡ chữ: 20</option>
+                        <option value="24px">Cỡ chữ: 24</option>
+                        <option value="28px">Cỡ chữ: 28</option>
                     </select>
 
                     <select class="view-select" onchange="changeViewMode(this.value)">
@@ -238,6 +270,35 @@
     </div>
 
     <script>
+        // ==========================================
+        // KHỞI TẠO TÍNH NĂNG ẨN HIỆN ĐÁP ÁN CHO QUILL
+        // ==========================================
+        const Block = Quill.import('blots/block');
+        class AnswerBlot extends Block {
+            static create(value) {
+                let node = super.create();
+                node.classList.add('sn-answer-block');
+                node.classList.add('hidden'); 
+                return node;
+            }
+            static formats(node) { return node.classList.contains('sn-answer-block'); }
+        }
+        AnswerBlot.blotName = 'answer';
+        AnswerBlot.tagName = 'DIV';
+        AnswerBlot.className = 'sn-answer-block';
+        Quill.register(AnswerBlot);
+
+        var icons = Quill.import('ui/icons');
+        icons['answer'] = '<i class="fa-solid fa-eye-slash" title="Bôi đen văn bản và nhấn để Ẩn/Hiện đáp án" style="font-size: 16px; display:flex; align-items:center; justify-content:center; height:100%;"></i>';
+
+        document.getElementById('editor').addEventListener('click', function(e) {
+            let block = e.target.closest('.sn-answer-block');
+            if (block) block.classList.toggle('hidden');
+        });
+
+        // ==========================================
+        // CẤU HÌNH FIREBASE & ỨNG DỤNG
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyD5HQrVrAaVyEjO-ICJm8RuCh6NawEAf-g",
             authDomain: "hupernotes.firebaseapp.com",
@@ -314,18 +375,30 @@
                     theme: 'snow',
                     modules: { 
                         formula: true, 
-                        toolbar: [
-                            [{ 'font': [] }, { 'size': [] }],
-                            [{ 'header': [1, 2, 3, false] }],
-                            ['bold', 'italic', 'underline', 'strike'],
-                            [{ 'color': [] }, { 'background': [] }],
-                            [{ 'script': 'sub'}, { 'script': 'super' }],
-                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            ['formula', 'image', 'code-block'],
-                            ['clean']
-                        ]
+                        toolbar: {
+                            container: [
+                                [{ 'font': [] }, { 'size': [] }],
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'color': [] }, { 'background': [] }],
+                                ['answer'], 
+                                [{ 'script': 'sub'}, { 'script': 'super' }],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                ['formula', 'image', 'code-block'],
+                                ['clean']
+                            ],
+                            handlers: {
+                                'answer': function() {
+                                    let range = quill.getSelection();
+                                    if (range) {
+                                        let format = quill.getFormat(range);
+                                        quill.format('answer', !format.answer);
+                                    }
+                                }
+                            }
+                        }
                     },
-                    placeholder: ''
+                    placeholder: 'Soạn thảo hoặc dán nội dung từ AI vào đây...'
                 });
 
                 quill.on('text-change', () => {
@@ -342,27 +415,93 @@
             renderTabs();
         }
 
-        function toggleEditorContent() {
-            const editor = document.getElementById('editor');
-            const icon = document.getElementById('eye-icon');
-            
-            editor.classList.toggle('collapsed-content');
-            
-            if(editor.classList.contains('collapsed-content')) {
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            } else {
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
+        // ==========================================
+        // NHẬP / XUẤT JSON
+        // ==========================================
+        function exportSubjectJSON() {
+            if(!currentSubjectId) return alert("Vui lòng chọn 1 môn học bên thanh menu để xuất file!");
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(subject));
+            let downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `SuperNotes_${subject.name}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importSubjectJSON(event) {
+            let file = event.target.files[0];
+            if(!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let importedData = JSON.parse(e.target.result);
+                    if(importedData.name && Array.isArray(importedData.docs)) {
+                        importedData.id = generateId(); 
+                        importedData.docs.forEach(doc => doc.id = generateId());
+                        appData.subjects.push(importedData);
+                        saveData(); renderSubjects();
+                        alert(`Đã tải lên môn học: "${importedData.name}" thành công!`);
+                    } else {
+                        alert("File JSON không hợp lệ!");
+                    }
+                } catch(err) { alert("Lỗi đọc file JSON."); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function changeZoom(size) { document.getElementById('editor').style.fontSize = size; }
+
+        // ==========================================
+        // ĐỔI TÊN VÀ XÓA (MÔN HỌC & TAB)
+        // ==========================================
+        function renameSubject(id) {
+            let subject = appData.subjects.find(s => s.id === id);
+            let newName = prompt("Đổi tên môn học:", subject.name);
+            if (newName && newName.trim() !== "") {
+                subject.name = newName.trim();
+                saveData(); renderSubjects();
             }
         }
 
-        function changeZoom(size) {
-            document.getElementById('editor').style.fontSize = size;
+        function deleteSubject(id) {
+            let subject = appData.subjects.find(s => s.id === id);
+            if (confirm(`Bạn có chắc muốn xóa vĩnh viễn môn học "${subject.name}"?`)) {
+                appData.subjects = appData.subjects.filter(s => s.id !== id);
+                if (currentSubjectId === id) {
+                    currentSubjectId = appData.subjects.length > 0 ? appData.subjects[0].id : null;
+                    currentDocId = currentSubjectId && appData.subjects[0].docs.length > 0 ? appData.subjects[0].docs[0].id : null;
+                }
+                saveData(); renderSubjects(); renderTabs();
+            }
+        }
+
+        function renameTab(id) {
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            let doc = subject.docs.find(d => d.id === id);
+            let newTitle = prompt("Đổi tên Tab:", doc.title);
+            if (newTitle && newTitle.trim() !== "") {
+                doc.title = newTitle.trim();
+                saveData(); renderTabs();
+            }
+        }
+
+        function deleteTab(id) {
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            let doc = subject.docs.find(d => d.id === id);
+            if (confirm(`Bạn có chắc muốn xóa tab "${doc.title}"?`)) {
+                subject.docs = subject.docs.filter(d => d.id !== id);
+                if (currentDocId === id) {
+                    currentDocId = subject.docs.length > 0 ? subject.docs[0].id : null;
+                }
+                saveData(); renderTabs(); loadEditorContent();
+            }
         }
 
         // ==========================================
-        // BỘ XỬ LÝ DÁN NÂNG CẤP V3 (KHẮC PHỤC LỖI KẾT LIỄU KATEX)
+        // BỘ XỬ LÝ DÁN NÂNG CẤP V4 (SỬA LỖI XUỐNG DÒNG)
         // ==========================================
         function handleAIPaste(e) {
             e.preventDefault();
@@ -375,74 +514,50 @@
                 let parser = new DOMParser();
                 let doc = parser.parseFromString(clipboardHTML, 'text/html');
                 
-                // 1. TÌM VÀ CỨU TOÁN HỌC TRƯỚC KHI BỊ XÓA
                 let mathNodes = doc.querySelectorAll('math, .katex, mjx-container, .math-wrapper, [data-tex]');
                 mathNodes.forEach(node => {
                     let tex = '';
-                    
-                    // Ưu tiên 1: Lấy từ annotation (Chuẩn nhất)
                     let anno = node.querySelector('annotation[encoding="application/x-tex"], annotation');
                     if (anno) {
                         tex = anno.textContent;
-                    } 
-                    // Ưu tiên 2: Lấy từ data-tex
-                    else if (node.getAttribute('data-tex')) {
+                    } else if (node.getAttribute('data-tex')) {
                         tex = node.getAttribute('data-tex');
-                    }
-                    // Ưu tiên 3: Lấy nội dung text thuần túy
-                    else {
+                    } else {
                         let mathml = node.querySelector('math, .katex-mathml');
-                        if(mathml) {
-                            tex = mathml.textContent;
-                        } else {
-                            tex = node.textContent; 
-                        }
+                        if(mathml) tex = mathml.textContent;
+                        else tex = node.textContent; 
                     }
-
                     if (tex && tex.trim() !== '') {
-                        // Đóng gói thành LaTeX an toàn và thay thế vào DOM
                         node.replaceWith(doc.createTextNode(` $$${tex.trim()}$$ `));
                     }
                 });
 
-                // 2. Chống rớt số mũ khi bôi đen chay
-                doc.querySelectorAll('sup').forEach(el => el.replaceWith(doc.createTextNode(`^{${el.textContent}}`)));
-                doc.querySelectorAll('sub').forEach(el => el.replaceWith(doc.createTextNode(`_{${el.textContent}}`)));
-
-                // Dọn dẹp thẻ HTML thừa của KaTeX (nếu còn sót) để tránh hiển thị đúp
                 doc.querySelectorAll('.katex-html').forEach(el => el.remove());
 
-                let turndownService = new TurndownService();
-                turndownService.escape = function (str) { return str; }; // Không tự thêm dấu gạch chéo
+                let turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-' });
+                turndownService.escape = function (str) { return str; };
                 
-                // Cực kỳ quan trọng: Ép giữ lại các thẻ lạ để text không bị bốc hơi
-                turndownService.keep(['span', 'div', 'p']); 
+                // ĐÃ LOẠI BỎ LỆNH 'KEEP' GÂY LỖI CHẬP DÒNG DẤU SAO (*).
+                turndownService.keep(['sup', 'sub']); 
                 
                 processedText = turndownService.turndown(doc.body.innerHTML);
             }
 
             if (!processedText) return;
 
-            // 3. DIỆT KÝ TỰ MA (ĐÂY LÀ TỘI ĐỒ GÂY SẬP CÔNG THỨC)
-            processedText = processedText.replace(/[\u200B-\u200D\uFEFF]/g, ''); // Cắt zero-width space
-            processedText = processedText.replace(//g, '\\not '); // Cứu dấu \neq (U+E020)
+            processedText = processedText.replace(/[\u200B-\u200D\uFEFF]/g, ''); 
+            processedText = processedText.replace(//g, '\\not ');
             
-            // Chuyển ký tự unicode thô về mã KaTeX
             processedText = processedText.replace(/α/g, '\\alpha ');
             processedText = processedText.replace(/β/g, '\\beta ');
             processedText = processedText.replace(/γ/g, '\\gamma ');
             processedText = processedText.replace(/Δ/g, '\\Delta ');
             processedText = processedText.replace(/π/g, '\\pi ');
 
-            // 4. CHUYỂN HÓA VÀO QUILL
             let mathBlocks = [];
             const saveMath = (formula, isBlock) => {
                 let id = `MATHBLOCK${mathBlocks.length}XYZ`; 
-                let cleanFormula = formula.trim()
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                    
+                let cleanFormula = formula.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 let latexCode = isBlock ? `\\displaystyle ${cleanFormula}` : cleanFormula;
                 mathBlocks.push({ id, html: `<span class="ql-formula" data-value="${latexCode}"></span>` });
                 return id;
@@ -453,7 +568,6 @@
             processedText = processedText.replace(/(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)/g, (m, f) => saveMath(f, false));
             processedText = processedText.replace(/\\\((.*?)\\\)/gs, (m, f) => saveMath(f, false));
 
-            // Bảo vệ gạch chéo NẾU nó nằm trôi nổi ngoài math block
             processedText = processedText.replace(/\\(int|frac|sum|sqrt|lim|rightarrow|Delta|pi|alpha|beta|ce|mu|neq|pm|infty|not)/g, '\\\\$1');
 
             let finalHTML = marked.parse(processedText);
@@ -466,6 +580,9 @@
             quill.clipboard.dangerouslyPasteHTML(range.index, finalHTML);
         }
 
+        // ==========================================
+        // GIAO DIỆN & RENDER
+        // ==========================================
         function changeViewMode(mode) {
             document.body.classList.remove('force-desktop', 'force-mobile');
             if (mode === 'desktop') document.body.classList.add('force-desktop');
@@ -476,10 +593,8 @@
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('overlay-mobile');
             const isMobile = window.innerWidth <= 768 || document.body.classList.contains('force-mobile');
-
             if (isMobile && !document.body.classList.contains('force-desktop')) {
-                sidebar.classList.toggle('open');
-                overlay.classList.toggle('show');
+                sidebar.classList.toggle('open'); overlay.classList.toggle('show');
             } else {
                 sidebar.classList.toggle('collapsed');
             }
@@ -491,8 +606,11 @@
             appData.subjects.forEach(sub => {
                 let li = document.createElement('li');
                 li.className = `subject-item ${sub.id === currentSubjectId ? 'active' : ''}`;
-                li.innerHTML = `<i class="fa-solid fa-folder"></i> ${sub.name}`;
-                li.onclick = () => {
+                
+                let nameDiv = document.createElement('div');
+                nameDiv.innerHTML = `<i class="fa-solid fa-folder"></i> ${sub.name}`;
+                nameDiv.style.flexGrow = '1'; nameDiv.style.overflow = 'hidden'; nameDiv.style.textOverflow = 'ellipsis';
+                nameDiv.onclick = () => {
                     currentSubjectId = sub.id;
                     currentDocId = sub.docs.length > 0 ? sub.docs[0].id : null;
                     renderSubjects(); renderTabs();
@@ -501,6 +619,19 @@
                         document.getElementById('overlay-mobile').classList.remove('show');
                     }
                 };
+                li.appendChild(nameDiv);
+
+                let actionsDiv = document.createElement('div');
+                actionsDiv.className = 'subject-actions';
+                
+                let editBtn = document.createElement('i'); editBtn.className = 'fa-solid fa-pen';
+                editBtn.onclick = (e) => { e.stopPropagation(); renameSubject(sub.id); };
+                
+                let delBtn = document.createElement('i'); delBtn.className = 'fa-solid fa-trash';
+                delBtn.onclick = (e) => { e.stopPropagation(); deleteSubject(sub.id); };
+
+                actionsDiv.appendChild(editBtn); actionsDiv.appendChild(delBtn);
+                li.appendChild(actionsDiv);
                 list.appendChild(li);
             });
         }
@@ -514,8 +645,25 @@
             subject.docs.forEach(doc => {
                 let div = document.createElement('div');
                 div.className = `tab ${doc.id === currentDocId ? 'active' : ''}`;
-                div.textContent = doc.title;
-                div.onclick = () => { currentDocId = doc.id; renderTabs(); loadEditorContent(); };
+                
+                let nameSpan = document.createElement('span');
+                nameSpan.textContent = doc.title;
+                nameSpan.onclick = () => { currentDocId = doc.id; renderTabs(); loadEditorContent(); };
+                div.appendChild(nameSpan);
+
+                if (doc.id === currentDocId) {
+                    let actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'tab-actions';
+
+                    let editBtn = document.createElement('i'); editBtn.className = 'fa-solid fa-pen';
+                    editBtn.onclick = (e) => { e.stopPropagation(); renameTab(doc.id); };
+                    
+                    let delBtn = document.createElement('i'); delBtn.className = 'fa-solid fa-times';
+                    delBtn.onclick = (e) => { e.stopPropagation(); deleteTab(doc.id); };
+
+                    actionsDiv.appendChild(editBtn); actionsDiv.appendChild(delBtn);
+                    div.appendChild(actionsDiv);
+                }
                 container.appendChild(div);
             });
             loadEditorContent();
@@ -529,8 +677,7 @@
                 let newDoc = { id: generateId(), title: title, content: `<h1>${title}</h1>` };
                 subject.docs.push(newDoc);
                 currentDocId = newDoc.id; 
-                saveData(); 
-                renderTabs();
+                saveData(); renderTabs();
                 setTimeout(() => {
                     let container = document.getElementById('tabs-container');
                     container.scrollLeft = container.scrollWidth;
