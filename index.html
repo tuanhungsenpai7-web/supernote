@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Super Notes Pro - AI Paste Perfect</title>
+    <title>Super Notes Pro - Firebase Cloud</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,6 +13,9 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
@@ -59,7 +62,6 @@
         .logout-btn { background: none; border: none; color: #ff7675; cursor: pointer; font-size: 12px; margin-top: 5px; transition: 0.2s;}
         .logout-btn:hover { color: #d63031; }
         
-        /* Cải tiến Header môn học có thể click thu gọn */
         .sidebar-header-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 20px; color: var(--sidebar-text); cursor: pointer; transition: 0.2s; user-select: none; }
         .sidebar-header-wrapper:hover { color: var(--sidebar-hover); background: rgba(255,255,255,0.02); }
         .sidebar-header { font-size: 12px; text-transform: uppercase; font-weight: 700; }
@@ -72,7 +74,6 @@
         #subject-list-container::-webkit-scrollbar { width: 5px; }
         #subject-list-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
         
-        /* Cải tiến Subject item thêm nút hành động */
         .subject-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; color: var(--sidebar-text); transition: 0.3s; display: flex; justify-content: space-between; align-items: center; }
         .subject-item-content { display: flex; align-items: center; gap: 10px; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
         .subject-actions { display: flex; gap: 8px; opacity: 0; transition: 0.2s; font-size: 13px; }
@@ -97,7 +98,6 @@
         #tabs-container::-webkit-scrollbar { height: 5px; }
         #tabs-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
 
-        /* Cải tiến Tab thêm nút hành động */
         .tab { padding: 10px 15px; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; white-space: nowrap; border: 1px solid var(--border-light); display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
         .tab.active { background: var(--text-dark); color: white; border-color: var(--text-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .tab-title { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
@@ -142,7 +142,6 @@
         .ql-editor summary::-webkit-details-marker { color: #6c5ce7; font-size: 12px; }
         .ql-editor .accordion-inner { padding: 8px 12px 12px 12px !important; border-top: 1px solid #e0d9ff !important; font-size: 14px; }
         .ql-editor details[open] summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-        .ql-accordion i { font-size: 18px; }
         
         #mobile-menu-btn { display: none; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-dark); }
         #overlay-mobile { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
@@ -168,7 +167,6 @@
         body.force-desktop #mobile-menu-btn { display: none !important; }
         body.force-desktop #overlay-mobile.show { display: none !important; }
         
-        /* Cải tiến Modal hệ thống (PDF & Confirm) */
         .sys-modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; backdrop-filter: blur(3px); }
         .sys-modal.active { opacity: 1; visibility: visible; }
         .modal-card { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); transform: translateY(-20px) scale(0.95); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -192,10 +190,10 @@
 
     <div id="login-overlay">
         <div class="login-card">
-            <h2>Super Notes AI</h2>
+            <h2>Super Notes Cloud</h2>
+            <p style="font-size:13px; color:#7f8c8d; margin-bottom: 15px;">Đồng bộ dữ liệu thời gian thực</p>
             <div class="input-group"><input type="text" id="username" placeholder="Tên đăng nhập" autocomplete="off"></div>
-            <div class="input-group"><input type="password" id="password" placeholder="Mật khẩu" autocomplete="off"></div>
-            <button class="btn-main" style="width:100%" onclick="handleLogin()">Vào Hệ Thống</button>
+            <button class="btn-main" style="width:100%" onclick="handleLogin()">Đăng Nhập / Tạo Mới</button>
         </div>
     </div>
 
@@ -259,8 +257,8 @@
                 </div>
                 
                 <div class="actions">
-                    <div class="ai-badge" title="Phiên bản cao cấp nhất: Tính năng Toán chuẩn chỉnh & Soạn giáo án ẩn/hiện đáp án">
-                        <i class="fa-solid fa-crown" style="color: #ffeaa7; font-size: 14px;"></i> AI Paste Perfect
+                    <div class="ai-badge" id="sync-badge" title="Trạng thái lưu trữ đám mây">
+                        <i class="fa-solid fa-cloud"></i> Đang chờ đồng bộ...
                     </div>
                     <div class="zoom-group">
                         <button class="zoom-btn" id="zoom-out-btn" title="Thu nhỏ văn bản"><i class="fas fa-search-minus"></i></button>
@@ -284,7 +282,24 @@
 
     <script>
         // ==============================================================
-        // KHỐI HỘP ẨN HIỆN ĐÁP ÁN (ACCORDION)
+        // 1. CẤU HÌNH API FIREBASE (CỦA TUẤN HÙNG)
+        // ==============================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5HQrVrAaVyEjO-ICJm8RuCh6NawEAf-g",
+            authDomain: "hupernotes.firebaseapp.com",
+            databaseURL: "https://hupernotes-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "hupernotes",
+            storageBucket: "hupernotes.firebasestorage.app",
+            messagingSenderId: "442618106279",
+            appId: "1:442618106279:web:ba42bbd1094d48ce7be682"
+        };
+
+        // Khởi tạo Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ==============================================================
+        // 2. CẤU HÌNH GIAO DIỆN & SOẠN THẢO
         // ==============================================================
         const BlockEmbed = Quill.import('blots/block/embed');
         class AccordionBlot extends BlockEmbed {
@@ -314,21 +329,119 @@
         Quill.register(AccordionBlot);
 
         let currentUser = null;
-        let appData = {};
+        let appData = { subjects: [] };
         let currentSubjectId = null;
         let currentDocId = null;
         let quill;
         let currentZoomLevel = 16;
         let pendingConfirmCallback = null;
+        let saveTimeout;
 
-        window.onload = () => {
-            if(localStorage.getItem('sn_current_user')) {
-                currentUser = localStorage.getItem('sn_current_user');
+        // KIỂM TRA ĐĂNG NHẬP
+        window.onload = async () => {
+            const savedUser = localStorage.getItem('sn_current_user');
+            if (savedUser) {
+                currentUser = savedUser;
+                document.getElementById('login-overlay').style.display = 'none';
+                updateSyncStatus("Đang đồng bộ...", "#f39c12");
+                await loadFirebaseData();
                 initApp();
             }
         };
 
-        // ========== QUẢN LÝ MODAL ==========
+        async function handleLogin() {
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            if(!user) return alert("Nhập tên đăng nhập!");
+            
+            currentUser = user;
+            localStorage.setItem('sn_current_user', currentUser);
+            document.getElementById('login-overlay').style.display = 'none';
+            updateSyncStatus("Đang kiểm tra...", "#f39c12");
+            
+            await loadFirebaseData();
+            initApp();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('sn_current_user');
+            location.reload();
+        }
+
+        // ==============================================================
+        // 3. LOGIC LƯU TRỮ GOOGLE FIRESTORE
+        // ==============================================================
+        
+        function updateSyncStatus(text, color) {
+            const badge = document.getElementById('sync-badge');
+            if(badge) {
+                badge.innerHTML = text;
+                badge.style.backgroundColor = color;
+            }
+        }
+
+        async function loadFirebaseData() {
+            try {
+                const docRef = db.collection("user_notes").doc(currentUser);
+                const docSnap = await docRef.get();
+
+                if (docSnap.exists) {
+                    appData = docSnap.data().app_data;
+                    if (!appData.subjects) appData.subjects = [];
+                    if(appData.subjects && appData.subjects.length > 0) {
+                        currentSubjectId = appData.subjects[0].id;
+                        if(appData.subjects[0].docs && appData.subjects[0].docs.length > 0) {
+                            currentDocId = appData.subjects[0].docs[0].id;
+                        }
+                    }
+                } else {
+                    appData = {
+                        subjects: [{
+                            id: generateId(), name: 'Môn mẫu', 
+                            docs: [{ id: generateId(), title: 'Tài liệu đầu tiên', content: '<h1>Chào mừng!</h1><p>Bắt đầu ghi chú tại đây...</p>' }]
+                        }]
+                    };
+                    currentSubjectId = appData.subjects[0].id;
+                    currentDocId = appData.subjects[0].docs[0].id;
+                    await docRef.set({ username: currentUser, app_data: appData });
+                }
+                updateSyncStatus("<i class='fa-solid fa-cloud'></i> Đã lưu lên mây", "#20bf6b");
+            } catch (error) {
+                console.error("Lỗi tải dữ liệu: ", error);
+                updateSyncStatus("Lỗi kết nối đám mây", "#e74c3c");
+            }
+        }
+
+        function triggerCloudSave() {
+            if (!currentUser) return;
+            updateSyncStatus("Đang lưu...", "#f39c12");
+            
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    await db.collection("user_notes").doc(currentUser).set({
+                        username: currentUser,
+                        app_data: appData
+                    });
+                    updateSyncStatus("<i class='fa-solid fa-cloud'></i> Đã lưu lên mây", "#20bf6b");
+                } catch (error) {
+                    console.error("Lỗi tự động lưu: ", error);
+                    updateSyncStatus("Lỗi lưu dữ liệu!", "#e74c3c");
+                }
+            }, 800); 
+        }
+
+        function saveData() { 
+            // Vẫn lưu cục bộ để dự phòng
+            localStorage.setItem(`sn_data_${currentUser}`, JSON.stringify(appData)); 
+            // Kích hoạt lưu lên Google
+            triggerCloudSave();
+        }
+
+        function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
+
+        // ==============================================================
+        // 4. KHỞI TẠO ỨNG DỤNG & CÁC HÀM UI
+        // ==============================================================
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         
@@ -342,25 +455,6 @@
             closeModal('confirm-modal');
             pendingConfirmCallback = null;
         }
-
-        function handleLogin() {
-            const user = document.getElementById('username').value.trim();
-            if(!user) return alert("Nhập tên đăng nhập!");
-            currentUser = user;
-            localStorage.setItem('sn_current_user', currentUser);
-            if (!localStorage.getItem(`sn_data_${currentUser}`)) {
-                localStorage.setItem(`sn_data_${currentUser}`, JSON.stringify({ subjects: [] }));
-            }
-            initApp();
-        }
-
-        function handleLogout() {
-            localStorage.removeItem('sn_current_user');
-            location.reload();
-        }
-
-        function saveData() { localStorage.setItem(`sn_data_${currentUser}`, JSON.stringify(appData)); }
-        function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
 
         function applyZoom(level) {
             if (!quill) return;
@@ -385,14 +479,10 @@
         }
 
         function initApp() {
-            document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
             document.getElementById('display-name').textContent = currentUser;
             document.getElementById('avatar-text').textContent = currentUser.charAt(0).toUpperCase();
 
-            appData = JSON.parse(localStorage.getItem(`sn_data_${currentUser}`));
-            if (!appData.subjects) appData.subjects = [];
-            
             if(!quill) {
                 window.katex = katex;
                 quill = new Quill('#editor', {
@@ -424,7 +514,7 @@
                                         quill.insertEmbed(range.index, 'accordion', html);
                                         quill.setSelection(range.index + 1);
                                     } else {
-                                        alert("💡 Mẹo: Hãy bôi đen (chọn) đoạn văn bản/công thức bạn muốn làm đáp án, sau đó nhấn nút này để tạo hộp ẩn/hiện nhỏ gọn!");
+                                        alert("💡 Hãy bôi đen (chọn) đoạn văn bản/công thức bạn muốn làm đáp án, sau đó nhấn nút này!");
                                     }
                                 }
                             }
@@ -458,7 +548,6 @@
             document.getElementById('zoom-out-btn')?.addEventListener('click', zoomOut);
             document.getElementById('zoom-reset-btn')?.addEventListener('click', zoomReset);
             
-            // Tự động chọn môn học đầu tiên nếu chưa có
             if(!currentSubjectId && appData.subjects.length > 0) {
                 currentSubjectId = appData.subjects[0].id;
                 if(appData.subjects[0].docs && appData.subjects[0].docs.length > 0) {
@@ -470,18 +559,12 @@
             renderTabs();
         }
 
-        // ==============================================================
-        // XỬ LÝ CHỨC NĂNG MÔN HỌC & TAB (Thêm, Sửa, Xóa)
-        // ==============================================================
-        
         function renderSubjects() {
             const list = document.getElementById('subject-list');
             list.innerHTML = '';
             (appData.subjects || []).forEach(sub => {
                 let li = document.createElement('li');
                 li.className = `subject-item ${sub.id === currentSubjectId ? 'active' : ''}`;
-                
-                // Cấu trúc UI của Subject
                 li.innerHTML = `
                     <div class="subject-item-content">
                         <i class="fa-solid fa-folder"></i> 
@@ -492,10 +575,8 @@
                         <i class="fa-solid fa-trash action-icon delete" title="Xóa môn học" onclick="deleteSubject('${sub.id}', event)"></i>
                     </div>
                 `;
-                
-                // Click vào môn học để chọn
                 li.onclick = (e) => {
-                    if(e.target.closest('.subject-actions')) return; // Bỏ qua nếu click vào nút sửa/xóa
+                    if(e.target.closest('.subject-actions')) return; 
                     currentSubjectId = sub.id;
                     currentDocId = (sub.docs && sub.docs.length > 0) ? sub.docs[0].id : null;
                     renderSubjects(); 
@@ -523,7 +604,7 @@
             let subject = appData.subjects.find(s => s.id === id);
             if(!subject) return;
             
-            showConfirm(`Bạn có chắc muốn xóa môn học "${subject.name}"? Toàn bộ tài liệu bên trong sẽ bị mất vĩnh viễn.`, () => {
+            showConfirm(`Bạn có chắc muốn xóa môn học "${subject.name}"? Toàn bộ tài liệu sẽ bị mất.`, () => {
                 appData.subjects = appData.subjects.filter(s => s.id !== id);
                 if(currentSubjectId === id) {
                     currentSubjectId = appData.subjects.length > 0 ? appData.subjects[0].id : null;
@@ -580,7 +661,6 @@
                     currentDocId = newDoc.id; 
                     saveData(); 
                     renderTabs();
-                    // Scroll tab container to end
                     setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 50);
                 }
             };
@@ -613,7 +693,6 @@
             showConfirm(`Xóa tài liệu "${doc.title}" vĩnh viễn khỏi hệ thống?`, () => {
                 subject.docs = subject.docs.filter(d => d.id !== docId);
                 if(currentDocId === docId) {
-                    // Nếu xóa tab đang mở, lùi về tab trước đó (nếu có)
                     currentDocId = subject.docs.length > 0 ? subject.docs[subject.docs.length - 1].id : null;
                 }
                 saveData();
@@ -629,7 +708,6 @@
                 appData.subjects.push(newSub);
                 saveData(); 
                 
-                // Mở rộng danh sách nếu đang đóng
                 document.getElementById('subject-list-container').classList.remove('collapsed');
                 document.querySelector('.sidebar-header-wrapper').classList.remove('collapsed');
                 
@@ -640,9 +718,6 @@
             }
         };
 
-        // ==============================================================
-        // AI PASTE PERFECT & TIỆN ÍCH
-        // ==============================================================
         function handleAIPaste(e) {
             let plainText = e.clipboardData.getData('text/plain');
             if (!plainText) return;
