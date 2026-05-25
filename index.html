@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Notes Pro - AI Paste Perfect</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        :root {
+            --bg-body: #eef2f6;
+            --sidebar-bg: linear-gradient(180deg, #1e1e2f 0%, #2a2a40 100%);
+            --sidebar-text: #b3b3cc;
+            --sidebar-hover: #ffffff;
+            --primary-color: #6c5ce7;
+            --primary-hover: #a29bfe;
+            --danger-color: #ff7675;
+            --card-bg: #ffffff;
+            --text-dark: #2d3436;
+            --border-light: #dfe6e9;
+            --shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body, button, input, select, textarea, .topbar, .sidebar-header, .subject-item, .tab { 
+            font-family: 'Inter', sans-serif; 
+        }
+
+        body { display: flex; height: 100vh; background-color: var(--bg-body); overflow: hidden; transition: all 0.3s;}
+
+        .btn-main { padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-main:hover { background: var(--primary-hover); }
+        .btn-danger { background: var(--danger-color); }
+        .btn-danger:hover { background: #d63031; }
+
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        .login-card { background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); width: 350px; text-align: center; }
+        .login-card h2 { color: var(--primary-color); margin-bottom: 20px; font-weight: 700; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group input { width: 100%; padding: 12px 15px; border: 1px solid var(--border-light); border-radius: 10px; outline: none; transition: 0.3s; }
+        .input-group input:focus { border-color: var(--primary-color); }
+
+        #app-container { display: none; width: 100%; height: 100%; }
+        
+        #sidebar { width: 260px; background: var(--sidebar-bg); display: flex; flex-direction: column; box-shadow: 2px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: transform 0.3s ease; }
+        .user-profile { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 15px; color: white; }
+        .avatar { width: 45px; height: 45px; background: var(--primary-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px;}
+        .user-info p { font-size: 12px; color: var(--sidebar-text); }
+        .user-info h4 { font-size: 16px; margin-top: 3px; }
+        .logout-btn { background: none; border: none; color: #ff7675; cursor: pointer; font-size: 12px; margin-top: 5px; transition: 0.2s;}
+        .logout-btn:hover { color: #d63031; }
+        
+        /* Cải tiến Header môn học có thể click thu gọn */
+        .sidebar-header-wrapper { display: flex; justify-content: space-between; align-items: center; padding: 20px; color: var(--sidebar-text); cursor: pointer; transition: 0.2s; user-select: none; }
+        .sidebar-header-wrapper:hover { color: var(--sidebar-hover); background: rgba(255,255,255,0.02); }
+        .sidebar-header { font-size: 12px; text-transform: uppercase; font-weight: 700; }
+        .sidebar-header-icon { transition: transform 0.3s ease; font-size: 12px; }
+        .sidebar-header-wrapper.collapsed .sidebar-header-icon { transform: rotate(-90deg); }
+        
+        #subject-list-container { flex-grow: 1; overflow-y: auto; overflow-x: hidden; transition: all 0.3s ease; }
+        #subject-list-container.collapsed { flex-grow: 0; height: 0; overflow: hidden; opacity: 0; }
+        #subject-list { list-style: none; padding: 0 10px; }
+        #subject-list-container::-webkit-scrollbar { width: 5px; }
+        #subject-list-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
+        
+        /* Cải tiến Subject item thêm nút hành động */
+        .subject-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; color: var(--sidebar-text); transition: 0.3s; display: flex; justify-content: space-between; align-items: center; }
+        .subject-item-content { display: flex; align-items: center; gap: 10px; flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .subject-actions { display: flex; gap: 8px; opacity: 0; transition: 0.2s; font-size: 13px; }
+        .subject-item:hover { background: rgba(255,255,255,0.05); color: var(--sidebar-hover); }
+        .subject-item:hover .subject-actions { opacity: 1; }
+        .subject-item.active { background: var(--primary-color); color: white; }
+        
+        .action-icon { color: var(--sidebar-text); transition: 0.2s; }
+        .action-icon:hover { color: white; transform: scale(1.1); }
+        .action-icon.delete:hover { color: var(--danger-color); }
+        .subject-item.active .action-icon { color: rgba(255,255,255,0.7); }
+        .subject-item.active .action-icon:hover { color: white; }
+        .subject-item.active .action-icon.delete:hover { color: #ff9999; }
+
+        #add-subject-btn { margin: 20px; padding: 12px; background: rgba(255,255,255,0.1); color: white; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        #add-subject-btn:hover { background: rgba(255,255,255,0.15); border-color: white; }
+
+        #main-content { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg-body); padding: 15px; gap: 15px; overflow: hidden; position: relative;}
+        
+        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;}
+        #tabs-container { display: flex; gap: 10px; overflow-x: auto; flex-grow: 1; padding-bottom: 5px; scroll-behavior: smooth; }
+        #tabs-container::-webkit-scrollbar { height: 5px; }
+        #tabs-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+
+        /* Cải tiến Tab thêm nút hành động */
+        .tab { padding: 10px 15px; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; white-space: nowrap; border: 1px solid var(--border-light); display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .tab.active { background: var(--text-dark); color: white; border-color: var(--text-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .tab-title { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+        .tab-actions { display: none; gap: 6px; font-size: 12px; }
+        .tab:hover .tab-actions { display: flex; }
+        .tab-icon { color: #a4b0be; transition: 0.2s; }
+        .tab-icon:hover { color: var(--text-dark); transform: scale(1.1); }
+        .tab-icon.delete:hover { color: var(--danger-color); }
+        .tab.active .tab-icon { color: #b2bec3; }
+        .tab.active .tab-icon:hover { color: white; }
+        .tab.active .tab-icon.delete:hover { color: #ff7675; }
+
+        #add-tab-btn { padding: 10px 15px; background: white; border: 1px dashed var(--border-light); border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        #add-tab-btn:hover { background: #f1f2f6; border-color: #a4b0be; }
+
+        .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .btn-action { padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 10px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 13px; transition: 0.2s;}
+        .btn-action:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .zoom-group { display: flex; gap: 5px; background: #fff; border-radius: 30px; padding: 2px; border: 1px solid var(--border-light); }
+        .zoom-btn { background: transparent; border: none; font-size: 16px; padding: 6px 12px; border-radius: 30px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .zoom-btn:hover { background: var(--primary-color); color: white; }
+        .zoom-reset { font-size: 12px; padding: 6px 10px; }
+
+        .ai-badge { background: #f39c12; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif;}
+
+        #editor-wrapper { flex-grow: 1; display: flex; flex-direction: column; background: var(--card-bg); border-radius: 15px; box-shadow: var(--shadow); overflow: hidden; }
+        
+        #editor { flex-grow: 1; font-size: 16px; background: white; padding: 10px; font-family: 'Inter', sans-serif;}
+        
+        .ql-editor img { max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .ql-editor { overflow-x: auto !important; }
+        .katex { font-size: 1.15em !important; text-rendering: auto; }
+        .katex-display { overflow-x: auto !important; overflow-y: hidden !important; padding-bottom: 8px; }
+        
+        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid var(--border-light) !important; padding: 10px !important; background: #fdfdfd; font-family: 'Inter', sans-serif;}
+        .ql-container.ql-snow { border: none !important; }
+
+        /* HỘP ĐÁP ÁN */
+        .ql-editor details { margin: 6px 0 !important; border: 1px solid #c3b8fd !important; border-radius: 10px !important; background: #ffffff !important; overflow: hidden !important; box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important; }
+        .ql-editor summary { padding: 6px 14px !important; font-weight: 600 !important; font-size: 13px !important; background: #f5f3ff !important; cursor: pointer !important; display: flex !important; align-items: center !important; color: #5e4bcb !important; outline: none !important; user-select: none !important; transition: background 0.2s; font-family: 'Inter', sans-serif; letter-spacing: 0.3px; }
+        .ql-editor summary:hover { background: #edeaff !important; }
+        .ql-editor summary::-webkit-details-marker { color: #6c5ce7; font-size: 12px; }
+        .ql-editor .accordion-inner { padding: 8px 12px 12px 12px !important; border-top: 1px solid #e0d9ff !important; font-size: 14px; }
+        .ql-editor details[open] summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .ql-accordion i { font-size: 18px; }
+        
+        #mobile-menu-btn { display: none; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-dark); }
+        #overlay-mobile { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
+        .view-select { padding: 8px; border-radius: 8px; border: 1px solid var(--border-light); outline: none; font-size: 13px;}
+
+        @media (max-width: 768px) {
+            body:not(.force-desktop) #sidebar { position: fixed; top: 0; left: -260px; height: 100%; }
+            body:not(.force-desktop) #sidebar.open { left: 0; }
+            body:not(.force-desktop) #mobile-menu-btn { display: block; }
+            body:not(.force-desktop) #overlay-mobile.show { display: block; }
+            body:not(.force-desktop) .actions { flex-direction: row; flex-wrap: wrap; width: 100%; align-items: center; }
+        }
+
+        body.force-mobile { justify-content: center; background: #333; }
+        body.force-mobile #app-container { width: 400px; height: 90vh; margin-top: 5vh; border-radius: 30px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); background: var(--bg-body); position: relative;}
+        body.force-mobile #sidebar { position: absolute; top: 0; left: -260px; height: 100%; }
+        body.force-mobile #sidebar.open { left: 0; }
+        body.force-mobile #mobile-menu-btn { display: block; }
+        body.force-mobile #overlay-mobile.show { display: absolute; display: block; }
+        
+        body.force-desktop { min-width: 1024px; overflow: auto; }
+        body.force-desktop #sidebar { position: static; left: 0; height: auto; }
+        body.force-desktop #mobile-menu-btn { display: none !important; }
+        body.force-desktop #overlay-mobile.show { display: none !important; }
+        
+        /* Cải tiến Modal hệ thống (PDF & Confirm) */
+        .sys-modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; backdrop-filter: blur(3px); }
+        .sys-modal.active { opacity: 1; visibility: visible; }
+        .modal-card { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); transform: translateY(-20px) scale(0.95); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sys-modal.active .modal-card { transform: translateY(0) scale(1); }
+        
+        .margin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .margin-item input { width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: 5px; outline: none; transition: 0.2s; }
+        .margin-item input:focus { border-color: var(--primary-color); }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;}
+        .btn-cancel { padding: 10px 15px; border: none; background: #f1f2f6; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-cancel:hover { background: #dfe6e9; }
+        
+        .confirm-content { text-align: center; margin-bottom: 10px; }
+        .confirm-icon { font-size: 40px; color: var(--danger-color); margin-bottom: 15px; }
+        .confirm-text { font-size: 15px; color: var(--text-dark); line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay-mobile" onclick="toggleSidebar()"></div>
+
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2>Super Notes AI</h2>
+            <div class="input-group"><input type="text" id="username" placeholder="Tên đăng nhập" autocomplete="off"></div>
+            <div class="input-group"><input type="password" id="password" placeholder="Mật khẩu" autocomplete="off"></div>
+            <button class="btn-main" style="width:100%" onclick="handleLogin()">Vào Hệ Thống</button>
+        </div>
+    </div>
+
+    <div id="pdf-modal" class="sys-modal">
+        <div class="modal-card">
+            <h3 style="margin-bottom:15px; font-family: 'Inter', sans-serif;"><i class="fa-solid fa-file-pdf" style="color: #e55039;"></i> Cấu hình giấy A4 (mm)</h3>
+            <div class="margin-grid">
+                <div class="margin-item"><label>Trên</label><input type="number" id="m-top" value="20"></div>
+                <div class="margin-item"><label>Dưới</label><input type="number" id="m-bottom" value="20"></div>
+                <div class="margin-item"><label>Trái</label><input type="number" id="m-left" value="25"></div>
+                <div class="margin-item"><label>Phải</label><input type="number" id="m-right" value="20"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal('pdf-modal')">Hủy</button>
+                <button class="btn-main" onclick="exportToPDF()">Xuất PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="sys-modal">
+        <div class="modal-card">
+            <div class="confirm-content">
+                <i class="fa-solid fa-triangle-exclamation confirm-icon"></i>
+                <h3 style="margin-bottom:10px;">Xác nhận xóa</h3>
+                <p class="confirm-text" id="confirm-message">Bạn có chắc chắn muốn xóa mục này không?</p>
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button class="btn-cancel" onclick="closeModal('confirm-modal')">Hủy bỏ</button>
+                <button class="btn-main btn-danger" onclick="executeConfirm()">Xóa ngay</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container">
+        <div id="sidebar">
+            <div class="user-profile">
+                <div class="avatar" id="avatar-text">T</div>
+                <div class="user-info">
+                    <p>Xin chào,</p>
+                    <h4 id="display-name">User</h4>
+                    <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
+                </div>
+            </div>
+            
+            <div class="sidebar-header-wrapper" onclick="toggleSubjectVisibility()">
+                <div class="sidebar-header">Môn học</div>
+                <i class="fa-solid fa-chevron-down sidebar-header-icon"></i>
+            </div>
+            
+            <div id="subject-list-container">
+                <ul id="subject-list"></ul>
+            </div>
+            <button id="add-subject-btn">+ Thêm Môn</button>
+        </div>
+
+        <div id="main-content">
+            <div class="topbar">
+                <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                    <button id="mobile-menu-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                    <div id="tabs-container"></div>
+                </div>
+                
+                <div class="actions">
+                    <div class="ai-badge" title="Phiên bản cao cấp nhất: Tính năng Toán chuẩn chỉnh & Soạn giáo án ẩn/hiện đáp án">
+                        <i class="fa-solid fa-crown" style="color: #ffeaa7; font-size: 14px;"></i> AI Paste Perfect
+                    </div>
+                    <div class="zoom-group">
+                        <button class="zoom-btn" id="zoom-out-btn" title="Thu nhỏ văn bản"><i class="fas fa-search-minus"></i></button>
+                        <button class="zoom-btn zoom-reset" id="zoom-reset-btn" title="Khôi phục cỡ chữ">100%</button>
+                        <button class="zoom-btn" id="zoom-in-btn" title="Phóng to văn bản"><i class="fas fa-search-plus"></i></button>
+                    </div>
+                    <select class="view-select" onchange="changeViewMode(this.value)">
+                        <option value="auto">Giao diện: Tự động</option>
+                        <option value="desktop">Giao diện: Máy tính</option>
+                        <option value="mobile">Giao diện: Điện thoại</option>
+                    </select>
+                    <button class="btn-action" onclick="openModal('pdf-modal')"><i class="fa-solid fa-print"></i> PDF</button>
+                </div>
+            </div>
+            
+            <div id="editor-wrapper">
+                <div id="editor"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==============================================================
+        // KHỐI HỘP ẨN HIỆN ĐÁP ÁN (ACCORDION)
+        // ==============================================================
+        const BlockEmbed = Quill.import('blots/block/embed');
+        class AccordionBlot extends BlockEmbed {
+            static create(value) {
+                let node = super.create();
+                node.setAttribute('contenteditable', 'false');
+                node.innerHTML = `
+                    <details style="margin: 6px 0; border: 1px solid #c3b8fd; border-radius: 10px; background: #fff; overflow: hidden;">
+                        <summary style="padding: 6px 14px; font-weight: 600; font-size: 13px; background: #f5f3ff; cursor: pointer; color: #5e4bcb; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-regular fa-eye" style="font-size: 12px;"></i> 👉 Xem đáp án / Gợi ý
+                        </summary>
+                        <div class="accordion-inner" style="padding: 8px 12px 12px 12px; border-top: 1px solid #e0d9ff; font-family: 'Inter', sans-serif;">
+                            ${value}
+                        </div>
+                    </details>
+                `;
+                return node;
+            }
+            static value(node) {
+                let inner = node.querySelector('.accordion-inner');
+                return inner ? inner.innerHTML : '';
+            }
+        }
+        AccordionBlot.blotName = 'accordion';
+        AccordionBlot.tagName = 'div';
+        AccordionBlot.className = 'ql-accordion-block';
+        Quill.register(AccordionBlot);
+
+        let currentUser = null;
+        let appData = {};
+        let currentSubjectId = null;
+        let currentDocId = null;
+        let quill;
+        let currentZoomLevel = 16;
+        let pendingConfirmCallback = null;
+
+        window.onload = () => {
+            if(localStorage.getItem('sn_current_user')) {
+                currentUser = localStorage.getItem('sn_current_user');
+                initApp();
+            }
+        };
+
+        // ========== QUẢN LÝ MODAL ==========
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        
+        function showConfirm(message, callback) {
+            document.getElementById('confirm-message').textContent = message;
+            pendingConfirmCallback = callback;
+            openModal('confirm-modal');
+        }
+        function executeConfirm() {
+            if(pendingConfirmCallback) pendingConfirmCallback();
+            closeModal('confirm-modal');
+            pendingConfirmCallback = null;
+        }
+
+        function handleLogin() {
+            const user = document.getElementById('username').value.trim();
+            if(!user) return alert("Nhập tên đăng nhập!");
+            currentUser = user;
+            localStorage.setItem('sn_current_user', currentUser);
+            if (!localStorage.getItem(`sn_data_${currentUser}`)) {
+                localStorage.setItem(`sn_data_${currentUser}`, JSON.stringify({ subjects: [] }));
+            }
+            initApp();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('sn_current_user');
+            location.reload();
+        }
+
+        function saveData() { localStorage.setItem(`sn_data_${currentUser}`, JSON.stringify(appData)); }
+        function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
+
+        function applyZoom(level) {
+            if (!quill) return;
+            let editorElem = document.querySelector('#editor .ql-editor');
+            if (editorElem) {
+                level = Math.min(48, Math.max(8, level));
+                editorElem.style.fontSize = level + 'px';
+                currentZoomLevel = level;
+                const resetBtn = document.getElementById('zoom-reset-btn');
+                if(resetBtn) resetBtn.textContent = Math.round((level / 16) * 100) + '%';
+            }
+        }
+        function zoomIn() { applyZoom(currentZoomLevel + 2); }
+        function zoomOut() { applyZoom(currentZoomLevel - 2); }
+        function zoomReset() { applyZoom(16); }
+
+        function toggleSubjectVisibility() {
+            const wrapper = document.querySelector('.sidebar-header-wrapper');
+            const container = document.getElementById('subject-list-container');
+            wrapper.classList.toggle('collapsed');
+            container.classList.toggle('collapsed');
+        }
+
+        function initApp() {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            document.getElementById('display-name').textContent = currentUser;
+            document.getElementById('avatar-text').textContent = currentUser.charAt(0).toUpperCase();
+
+            appData = JSON.parse(localStorage.getItem(`sn_data_${currentUser}`));
+            if (!appData.subjects) appData.subjects = [];
+            
+            if(!quill) {
+                window.katex = katex;
+                quill = new Quill('#editor', {
+                    theme: 'snow',
+                    modules: { 
+                        formula: true, 
+                        toolbar: {
+                            container: [
+                                [{ 'font': [] }, { 'size': [] }],
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'color': [] }, { 'background': [] }],
+                                [{ 'script': 'sub'}, { 'script': 'super' }],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }, { 'align': [] }],
+                                ['formula', 'image', 'code-block'],
+                                ['accordion'],
+                                ['clean']
+                            ],
+                            handlers: {
+                                'accordion': function() {
+                                    var range = quill.getSelection();
+                                    if (range && range.length > 0) {
+                                        let fragment = quill.getContents(range.index, range.length);
+                                        let tempDiv = document.createElement('div');
+                                        let tempQuill = new Quill(tempDiv, { modules: { formula: true } });
+                                        tempQuill.setContents(fragment);
+                                        let html = tempDiv.querySelector('.ql-editor').innerHTML;
+                                        quill.deleteText(range.index, range.length);
+                                        quill.insertEmbed(range.index, 'accordion', html);
+                                        quill.setSelection(range.index + 1);
+                                    } else {
+                                        alert("💡 Mẹo: Hãy bôi đen (chọn) đoạn văn bản/công thức bạn muốn làm đáp án, sau đó nhấn nút này để tạo hộp ẩn/hiện nhỏ gọn!");
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    placeholder: 'Soạn thảo câu hỏi, bài tập hoặc chèn công thức...'
+                });
+
+                const accBtn = document.querySelector('.ql-accordion');
+                if(accBtn) {
+                    accBtn.innerHTML = '<i class="fa-regular fa-rectangle-ad" style="color:#6c5ce7; font-size:16px;"></i>';
+                    accBtn.title = "Tạo hộp ẩn/hiện đáp án (chọn text trước)";
+                }
+
+                quill.on('text-change', () => {
+                    if(currentSubjectId && currentDocId) {
+                        let subject = appData.subjects.find(s => s.id === currentSubjectId);
+                        if(subject) {
+                            let doc = subject.docs.find(d => d.id === currentDocId);
+                            if(doc) { doc.content = quill.root.innerHTML; saveData(); }
+                        }
+                    }
+                });
+
+                quill.root.addEventListener('paste', handleAIPaste, true);
+                
+                setTimeout(() => { applyZoom(16); }, 100);
+            }
+            
+            document.getElementById('zoom-in-btn')?.addEventListener('click', zoomIn);
+            document.getElementById('zoom-out-btn')?.addEventListener('click', zoomOut);
+            document.getElementById('zoom-reset-btn')?.addEventListener('click', zoomReset);
+            
+            // Tự động chọn môn học đầu tiên nếu chưa có
+            if(!currentSubjectId && appData.subjects.length > 0) {
+                currentSubjectId = appData.subjects[0].id;
+                if(appData.subjects[0].docs && appData.subjects[0].docs.length > 0) {
+                    currentDocId = appData.subjects[0].docs[0].id;
+                }
+            }
+            
+            renderSubjects();
+            renderTabs();
+        }
+
+        // ==============================================================
+        // XỬ LÝ CHỨC NĂNG MÔN HỌC & TAB (Thêm, Sửa, Xóa)
+        // ==============================================================
+        
+        function renderSubjects() {
+            const list = document.getElementById('subject-list');
+            list.innerHTML = '';
+            (appData.subjects || []).forEach(sub => {
+                let li = document.createElement('li');
+                li.className = `subject-item ${sub.id === currentSubjectId ? 'active' : ''}`;
+                
+                // Cấu trúc UI của Subject
+                li.innerHTML = `
+                    <div class="subject-item-content">
+                        <i class="fa-solid fa-folder"></i> 
+                        <span>${sub.name}</span>
+                    </div>
+                    <div class="subject-actions">
+                        <i class="fa-solid fa-pen action-icon edit" title="Sửa tên" onclick="editSubject('${sub.id}', event)"></i>
+                        <i class="fa-solid fa-trash action-icon delete" title="Xóa môn học" onclick="deleteSubject('${sub.id}', event)"></i>
+                    </div>
+                `;
+                
+                // Click vào môn học để chọn
+                li.onclick = (e) => {
+                    if(e.target.closest('.subject-actions')) return; // Bỏ qua nếu click vào nút sửa/xóa
+                    currentSubjectId = sub.id;
+                    currentDocId = (sub.docs && sub.docs.length > 0) ? sub.docs[0].id : null;
+                    renderSubjects(); 
+                    renderTabs();
+                    if(window.innerWidth <= 768 && !document.body.classList.contains('force-desktop')) toggleSidebar();
+                };
+                list.appendChild(li);
+            });
+        }
+
+        function editSubject(id, event) {
+            event.stopPropagation();
+            let subject = appData.subjects.find(s => s.id === id);
+            if(!subject) return;
+            let newName = prompt('Nhập tên mới cho môn học:', subject.name);
+            if(newName && newName.trim() !== "") {
+                subject.name = newName.trim();
+                saveData();
+                renderSubjects();
+            }
+        }
+
+        function deleteSubject(id, event) {
+            event.stopPropagation();
+            let subject = appData.subjects.find(s => s.id === id);
+            if(!subject) return;
+            
+            showConfirm(`Bạn có chắc muốn xóa môn học "${subject.name}"? Toàn bộ tài liệu bên trong sẽ bị mất vĩnh viễn.`, () => {
+                appData.subjects = appData.subjects.filter(s => s.id !== id);
+                if(currentSubjectId === id) {
+                    currentSubjectId = appData.subjects.length > 0 ? appData.subjects[0].id : null;
+                    currentDocId = null;
+                    if(currentSubjectId) {
+                        let newSub = appData.subjects[0];
+                        currentDocId = (newSub.docs && newSub.docs.length > 0) ? newSub.docs[0].id : null;
+                    }
+                }
+                saveData();
+                renderSubjects();
+                renderTabs();
+            });
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+            if(!currentSubjectId) { loadEditorContent(); return; }
+            
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            if(!subject) { loadEditorContent(); return; }
+            if(!subject.docs) subject.docs = [];
+            
+            subject.docs.forEach(doc => {
+                let div = document.createElement('div');
+                div.className = `tab ${doc.id === currentDocId ? 'active' : ''}`;
+                
+                div.innerHTML = `
+                    <span class="tab-title" title="${doc.title}">${doc.title}</span>
+                    <div class="tab-actions">
+                        <i class="fa-solid fa-pen tab-icon edit" title="Đổi tên" onclick="editTab('${doc.id}', event)"></i>
+                        <i class="fa-solid fa-xmark tab-icon delete" title="Đóng & Xóa" onclick="deleteTab('${doc.id}', event)"></i>
+                    </div>
+                `;
+
+                div.onclick = (e) => { 
+                    if(e.target.closest('.tab-actions')) return;
+                    currentDocId = doc.id; 
+                    renderTabs(); 
+                    loadEditorContent(); 
+                };
+                container.appendChild(div);
+            });
+
+            let addBtn = document.createElement('button');
+            addBtn.id = 'add-tab-btn';
+            addBtn.innerHTML = '+ Thêm Tab';
+            addBtn.onclick = () => {
+                let title = prompt('Tên tài liệu mới:');
+                if(title && title.trim() !== "") {
+                    let newDoc = { id: generateId(), title: title.trim(), content: `<h1>${title.trim()}</h1><p>Bắt đầu soạn thảo...</p>` };
+                    subject.docs.push(newDoc);
+                    currentDocId = newDoc.id; 
+                    saveData(); 
+                    renderTabs();
+                    // Scroll tab container to end
+                    setTimeout(() => { container.scrollLeft = container.scrollWidth; }, 50);
+                }
+            };
+            container.appendChild(addBtn);
+            loadEditorContent();
+        }
+
+        function editTab(docId, event) {
+            event.stopPropagation();
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            if(!subject) return;
+            let doc = subject.docs.find(d => d.id === docId);
+            if(!doc) return;
+            
+            let newTitle = prompt('Nhập tên mới cho tab này:', doc.title);
+            if(newTitle && newTitle.trim() !== "") {
+                doc.title = newTitle.trim();
+                saveData();
+                renderTabs();
+            }
+        }
+
+        function deleteTab(docId, event) {
+            event.stopPropagation();
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            if(!subject) return;
+            let doc = subject.docs.find(d => d.id === docId);
+            if(!doc) return;
+
+            showConfirm(`Xóa tài liệu "${doc.title}" vĩnh viễn khỏi hệ thống?`, () => {
+                subject.docs = subject.docs.filter(d => d.id !== docId);
+                if(currentDocId === docId) {
+                    // Nếu xóa tab đang mở, lùi về tab trước đó (nếu có)
+                    currentDocId = subject.docs.length > 0 ? subject.docs[subject.docs.length - 1].id : null;
+                }
+                saveData();
+                renderTabs();
+            });
+        }
+
+        document.getElementById('add-subject-btn').onclick = () => {
+            let name = prompt('Tên môn học mới:');
+            if(name && name.trim() !== "") {
+                if(!appData.subjects) appData.subjects = [];
+                let newSub = { id: generateId(), name: name.trim(), docs: [] };
+                appData.subjects.push(newSub);
+                saveData(); 
+                
+                // Mở rộng danh sách nếu đang đóng
+                document.getElementById('subject-list-container').classList.remove('collapsed');
+                document.querySelector('.sidebar-header-wrapper').classList.remove('collapsed');
+                
+                currentSubjectId = newSub.id;
+                currentDocId = null;
+                renderSubjects();
+                renderTabs();
+            }
+        };
+
+        // ==============================================================
+        // AI PASTE PERFECT & TIỆN ÍCH
+        // ==============================================================
+        function handleAIPaste(e) {
+            let plainText = e.clipboardData.getData('text/plain');
+            if (!plainText) return;
+            e.preventDefault();
+            let mathBlocks = [];
+            let processedText = plainText;
+            const saveMath = (formula, isBlock) => {
+                let id = `AIPASTEMATHBLOCK${mathBlocks.length}XYZ`; 
+                let cleanFormula = formula.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                let latexCode = isBlock ? `\\displaystyle ${cleanFormula}` : cleanFormula;
+                let html = `<span class="ql-formula" data-value="${latexCode.replace(/\\/g, '\\\\')}"></span>`;
+                mathBlocks.push({ id, html });
+                return id;
+            };
+            processedText = processedText.replace(/\$\$(.*?)\$\$/gs, (m, f) => saveMath(f, true));
+            processedText = processedText.replace(/\\\[(.*?)\\\]/gs, (m, f) => saveMath(f, true));
+            processedText = processedText.replace(/(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)/g, (m, f) => saveMath(f, false));
+            processedText = processedText.replace(/\\\((.*?)\\\)/gs, (m, f) => saveMath(f, false));
+            processedText = processedText.replace(/\\(int|frac|sum|sqrt|lim|rightarrow|Delta|pi|alpha|beta)/g, '\\\\$1');
+
+            let finalHTML = marked.parse(processedText);
+            mathBlocks.forEach(block => { finalHTML = finalHTML.replace(block.id, block.html); });
+
+            let range = quill.getSelection(true) || { index: quill.getLength() };
+            quill.clipboard.dangerouslyPasteHTML(range.index, finalHTML);
+        }
+
+        function changeViewMode(mode) {
+            document.body.classList.remove('force-desktop', 'force-mobile');
+            if (mode === 'desktop') document.body.classList.add('force-desktop');
+            if (mode === 'mobile') document.body.classList.add('force-mobile');
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay-mobile');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+
+        function loadEditorContent() {
+            if(!quill) return;
+            if(!currentSubjectId || !currentDocId) { 
+                quill.root.innerHTML = ''; 
+                quill.disable(); 
+                return; 
+            }
+            quill.enable();
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            if(subject && subject.docs) {
+                let doc = subject.docs.find(d => d.id === currentDocId);
+                if(doc) {
+                    quill.root.innerHTML = doc.content || '<p>Bắt đầu soạn thảo...</p>';
+                } else {
+                    quill.root.innerHTML = '<p>Không có nội dung</p>';
+                }
+            } else {
+                quill.root.innerHTML = '<p>Chọn môn học và tab để bắt đầu</p>';
+            }
+            applyZoom(currentZoomLevel);
+        }
+
+        function exportToPDF() {
+            closeModal('pdf-modal');
+            if(!currentDocId) return alert("Chọn tài liệu để xuất PDF!");
+            let subject = appData.subjects.find(s => s.id === currentSubjectId);
+            if(!subject) return;
+            let doc = subject.docs.find(d => d.id === currentDocId);
+            if(!doc) return;
+            
+            let mTop = parseFloat(document.getElementById('m-top').value) || 20;
+            let mBottom = parseFloat(document.getElementById('m-bottom').value) || 20;
+            let mLeft = parseFloat(document.getElementById('m-left').value) || 25;
+            let mRight = parseFloat(document.getElementById('m-right').value) || 20;
+
+            let printElement = document.createElement('div');
+            printElement.innerHTML = doc.content;
+            printElement.style.fontFamily = "'Inter', 'Times New Roman', serif";
+            printElement.style.fontSize = "16px";
+            printElement.style.lineHeight = "1.5";
+            printElement.style.padding = "5px";
+
+            var opt = {
+                margin:       [mTop, mRight, mBottom, mLeft],
+                filename:     `${doc.title}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(printElement).save();
+        }
+    </script>
+</body>
+</html>
