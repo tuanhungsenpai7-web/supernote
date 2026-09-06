@@ -1,743 +1,1370 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!doctype html>
+<html lang="vi" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Super Notes Pro - Ultimate NotebookLM Ready</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
-    
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
-
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-
-    <style>
-        :root {
-            --bg-body: #eef2f6;
-            --sidebar-bg: linear-gradient(180deg, #1e1e2f 0%, #2a2a40 100%);
-            --sidebar-text: #b3b3cc;
-            --sidebar-hover: #ffffff;
-            --primary-color: #6c5ce7;
-            --primary-hover: #a29bfe;
-            --card-bg: #ffffff;
-            --text-dark: #2d3436;
-            --border-light: #dfe6e9;
-            --shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body, button, input, select, textarea, .topbar, .sidebar-header, .subject-item, .tab { 
-            font-family: 'Inter', sans-serif; 
-        }
-
-        body { display: flex; height: 100vh; background-color: var(--bg-body); overflow: hidden; transition: all 0.3s;}
-
-        .btn-main { padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .btn-main:hover { background: var(--primary-hover); }
-
-        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-        .login-card { background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); width: 350px; text-align: center; }
-        .login-card h2 { color: var(--primary-color); margin-bottom: 20px; font-weight: 700; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        .input-group input { width: 100%; padding: 12px 15px; border: 1px solid var(--border-light); border-radius: 10px; outline: none; }
-        .input-group input:focus { border-color: var(--primary-color); }
-
-        #app-container { display: none; width: 100%; height: 100%; }
-        
-        #sidebar { 
-            width: 260px; background: var(--sidebar-bg); display: flex; flex-direction: column; 
-            box-shadow: 2px 0 15px rgba(0,0,0,0.1); z-index: 100; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            flex-shrink: 0; overflow-x: hidden; white-space: nowrap;
-        }
-        #sidebar.collapsed { width: 0; min-width: 0; opacity: 0; }
-
-        .user-profile { padding: 25px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 15px; color: white; }
-        .avatar { width: 45px; height: 45px; background: var(--primary-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 20px;}
-        .user-info p { font-size: 12px; color: var(--sidebar-text); }
-        .user-info h4 { font-size: 16px; margin-top: 3px; }
-        .logout-btn { background: none; border: none; color: #ff7675; cursor: pointer; font-size: 12px; margin-top: 5px; }
-        
-        .sidebar-header { padding: 20px; color: var(--sidebar-text); font-size: 12px; text-transform: uppercase; font-weight: 700; }
-        #subject-list { flex-grow: 1; overflow-y: auto; list-style: none; padding: 0 10px;}
-        #subject-list::-webkit-scrollbar { width: 5px; }
-        #subject-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 5px; }
-        
-        .subject-item { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; color: var(--sidebar-text); transition: 0.3s; display: flex; align-items: center; gap: 10px; justify-content: space-between;}
-        .subject-item:hover { background: rgba(255,255,255,0.05); color: var(--sidebar-hover); }
-        .subject-item.active { background: var(--primary-color); color: white; }
-
-        /* UI Hành động sửa/xóa Môn học */
-        .subject-actions { display: flex; gap: 8px; opacity: 0; transition: 0.2s; }
-        .subject-item:hover .subject-actions, .subject-item.active .subject-actions { opacity: 1; }
-        .subject-actions i { color: #a0aec0; transition: 0.2s; font-size: 13px;}
-        .subject-actions i:hover { color: #ff7675; transform: scale(1.1);}
-        .subject-item.active .subject-actions i { color: rgba(255,255,255,0.7); }
-        .subject-item.active .subject-actions i:hover { color: #fff; }
-        
-        /* KHU VỰC NÚT IMPORT / EXPORT */
-        .sidebar-actions { padding: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
-        #add-subject-btn { padding: 12px; background: rgba(255,255,255,0.1); color: white; border: 1px dashed rgba(255,255,255,0.3); border-radius: 10px; cursor: pointer; width: 100%; transition: 0.3s;}
-        #add-subject-btn:hover { background: rgba(255,255,255,0.2); }
-        .io-buttons { display: flex; gap: 8px; width: 100%; }
-        .btn-io { flex: 1; padding: 10px; background: rgba(255,255,255,0.05); color: var(--sidebar-text); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-io:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); }
-
-        #main-content { flex-grow: 1; display: flex; flex-direction: column; background: var(--bg-body); padding: 15px; gap: 15px; overflow: hidden; position: relative; min-width: 0;}
-        
-        .topbar { display: flex; justify-content: space-between; align-items: center; gap: 15px; width: 100%; }
-        .topbar-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-        #menu-toggle-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-dark); flex-shrink: 0; display: block; }
-        
-        #tabs-container { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap; align-items: center; }
-        #tabs-container::-webkit-scrollbar { display: none; }
-        .tab { display: flex; align-items: center; gap: 8px; padding: 10px 15px; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; white-space: nowrap; border: 1px solid var(--border-light); transition: 0.2s;}
-        .tab.active { background: var(--text-dark); color: white; border-color: var(--text-dark); }
-        
-        /* UI Hành động sửa/xóa Tab */
-        .tab-actions { display: flex; gap: 6px; color: #a0aec0; }
-        .tab.active .tab-actions { color: rgba(255,255,255,0.7); }
-        .tab-actions i { cursor: pointer; transition: 0.2s; font-size: 12px; }
-        .tab-actions i:hover { color: #ff7675; transform: scale(1.2); }
-        .tab.active .tab-actions i:hover { color: #fff; }
-
-        #add-tab-btn { padding: 10px 15px; background: white; border: 1px dashed var(--border-light); border-radius: 10px; cursor: pointer; flex-shrink: 0; font-size: 14px; white-space: nowrap;}
-
-        .actions { display: flex; gap: 10px; flex-shrink: 0; align-items: center;}
-        .btn-action { padding: 10px 15px; background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 10px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 13px;}
-        .btn-action:hover { background: var(--primary-color); color: white; }
-
-        #editor-wrapper { flex-grow: 1; display: flex; flex-direction: column; background: var(--card-bg); border-radius: 15px; box-shadow: var(--shadow); overflow: hidden; position: relative;}
-        
-        #editor { flex-grow: 1; font-size: 16px; background: white; padding: 10px; font-family: 'Inter', sans-serif; transition: 0.2s;}
-        
-        .ql-editor { overflow-x: auto !important; font-size: inherit !important; }
-        .katex { font-size: 1.15em !important; text-rendering: auto; }
-        .katex-display { overflow-x: auto !important; overflow-y: hidden !important; padding-bottom: 8px; }
-        
-        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid var(--border-light) !important; padding: 10px !important; background: #fdfdfd; font-family: 'Inter', sans-serif;}
-        .ql-container.ql-snow { border: none !important; }
-
-        /* NÚT ẨN/HIỆN ĐÁP ÁN (FLASHCARD) */
-        .ql-toolbar .ql-answer { color: #e84393; width: 30px; }
-        .ql-toolbar .ql-answer:hover { color: #d63031; }
-        
-        .sn-answer-block {
-            border-left: 4px solid #00b894; background: #e8f7f0; padding: 10px 15px; margin: 10px 0;
-            border-radius: 4px 8px 8px 4px; position: relative; transition: 0.2s ease-in-out;
-        }
-        .sn-answer-block.hidden {
-            height: 42px; padding: 0; overflow: hidden; background: #dfe6e9;
-            border-left-color: #b2bec3; cursor: pointer; display: flex; align-items: center;
-        }
-        .sn-answer-block.hidden * { opacity: 0 !important; pointer-events: none; }
-        .sn-answer-block.hidden::after {
-            content: '👁️ Đáp án đang ẩn (Nhấn vào để xem)'; position: absolute; left: 15px;
-            color: #2d3436; font-size: 14px; font-weight: 600;
-        }
-
-        #overlay-mobile { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
-        .view-select { padding: 8px; border-radius: 8px; border: 1px solid var(--border-light); outline: none; font-size: 13px; background: white;}
-
-        @media (max-width: 768px) {
-            .topbar { flex-direction: column; align-items: stretch; }
-            .topbar-left { width: 100%; }
-            body:not(.force-desktop) #sidebar { position: fixed; top: 0; left: -260px; height: 100%; opacity: 1;}
-            body:not(.force-desktop) #sidebar.open { left: 0; }
-            body:not(.force-desktop) #overlay-mobile.show { display: block; }
-            body:not(.force-desktop) .actions { flex-direction: row; width: 100%; justify-content: space-between; overflow-x: auto; padding-bottom: 5px; }
-        }
-
-        body.force-mobile { justify-content: center; background: #333; }
-        body.force-mobile #app-container { width: 400px; height: 90vh; margin-top: 5vh; border-radius: 30px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); background: var(--bg-body); position: relative;}
-        body.force-mobile .topbar { flex-direction: column; align-items: stretch; }
-        body.force-mobile .actions { flex-direction: row; width: 100%; justify-content: space-between; overflow-x: auto;}
-        body.force-mobile #sidebar { position: absolute; top: 0; left: -260px; height: 100%; opacity: 1;}
-        body.force-mobile #sidebar.open { left: 0; }
-        body.force-mobile #overlay-mobile.show { display: block; position: absolute; }
-        
-        body.force-desktop { min-width: 1024px; overflow: auto; }
-        body.force-desktop #sidebar { position: static; height: auto; opacity: 1;}
-        body.force-desktop #sidebar.collapsed { width: 0; min-width: 0; opacity: 0; padding: 0; }
-        body.force-desktop .topbar { flex-direction: row; }
-        body.force-desktop #overlay-mobile.show { display: none !important; }
-        
-        #pdf-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; }
-        .pdf-card { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .margin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .margin-item input { width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: 5px; }
-        .pdf-actions { display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-cancel { padding: 10px 15px; border: none; background: #f1f2f6; border-radius: 8px; cursor: pointer; font-weight: 600; }
-    </style>
-</head>
-<body>
-
-    <div id="overlay-mobile" onclick="toggleSidebar()"></div>
-
-    <div id="login-overlay">
-        <div class="login-card">
-            <h2>Super Notes AI</h2>
-            <div class="input-group"><input type="text" id="username" placeholder="Tên đăng nhập" autocomplete="off"></div>
-            <div class="input-group"><input type="password" id="password" placeholder="Mật khẩu (Tùy chọn)" autocomplete="off"></div>
-            <button class="btn-main" style="width:100%" onclick="handleLogin()">Vào Hệ Thống</button>
-        </div>
-    </div>
-
-    <div id="pdf-modal">
-        <div class="pdf-card">
-            <h3 style="margin-bottom:10px; font-family: 'Inter', sans-serif;"><i class="fa-solid fa-file-pdf" style="color: #e55039;"></i> Cấu hình giấy A4 (mm)</h3>
-            <div class="margin-grid">
-                <div class="margin-item"><label>Trên</label><input type="number" id="m-top" value="20"></div>
-                <div class="margin-item"><label>Dưới</label><input type="number" id="m-bottom" value="20"></div>
-                <div class="margin-item"><label>Trái</label><input type="number" id="m-left" value="25"></div>
-                <div class="margin-item"><label>Phải</label><input type="number" id="m-right" value="20"></div>
-            </div>
-            <div class="pdf-actions">
-                <button class="btn-cancel" onclick="document.getElementById('pdf-modal').style.display='none'">Hủy</button>
-                <button class="btn-main" onclick="exportToPDF()">Xuất PDF</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="app-container">
-        <div id="sidebar">
-            <div class="user-profile">
-                <div class="avatar" id="avatar-text">T</div>
-                <div class="user-info">
-                    <p>Xin chào,</p>
-                    <h4 id="display-name">User</h4>
-                    <button class="logout-btn" onclick="handleLogout()">Đăng xuất</button>
-                </div>
-            </div>
-            
-            <div class="sidebar-header">Môn học</div>
-            <ul id="subject-list"></ul>
-            
-            <div class="sidebar-actions">
-                <button id="add-subject-btn">+ Thêm Môn</button>
-                <div class="io-buttons">
-                    <button class="btn-io" onclick="exportSubjectJSON()" title="Xuất Môn học ra file JSON"><i class="fa-solid fa-download"></i> Tải Xuất</button>
-                    <button class="btn-io" onclick="document.getElementById('import-file').click()" title="Nhập Môn học từ file"><i class="fa-solid fa-upload"></i> Tải Nhập</button>
-                    <input type="file" id="import-file" style="display:none" accept=".json" onchange="importSubjectJSON(event)">
-                </div>
-            </div>
-        </div>
-
-        <div id="main-content">
-            <div class="topbar">
-                
-                <div class="topbar-left">
-                    <button id="menu-toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-                    <div id="tabs-container"></div>
-                    <button id="add-tab-btn" onclick="addNewTab()">+ Thêm Tab</button>
-                </div>
-                
-                <div class="actions">
-                    <select class="view-select" onchange="changeZoom(this.value)" title="Phóng to/Thu nhỏ chữ">
-                        <option value="14px">Cỡ chữ: 14</option>
-                        <option value="16px" selected>Cỡ chữ: 16</option>
-                        <option value="20px">Cỡ chữ: 20</option>
-                        <option value="24px">Cỡ chữ: 24</option>
-                        <option value="28px">Cỡ chữ: 28</option>
-                    </select>
-
-                    <select class="view-select" onchange="changeViewMode(this.value)">
-                        <option value="auto">Giao diện: Tự động</option>
-                        <option value="desktop">Giao diện: Máy tính</option>
-                        <option value="mobile">Giao diện: Điện thoại</option>
-                    </select>
-                    
-                    <button class="btn-action" onclick="document.getElementById('pdf-modal').style.display='flex'"><i class="fa-solid fa-print"></i> PDF</button>
-                </div>
-
-            </div>
-            
-            <div id="editor-wrapper">
-                <div id="editor"></div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ==========================================
-        // KHỞI TẠO TÍNH NĂNG ẨN HIỆN ĐÁP ÁN CHO QUILL
-        // ==========================================
-        const Block = Quill.import('blots/block');
-        class AnswerBlot extends Block {
-            static create(value) {
-                let node = super.create();
-                node.classList.add('sn-answer-block');
-                node.classList.add('hidden'); 
-                return node;
-            }
-            static formats(node) { return node.classList.contains('sn-answer-block'); }
-        }
-        AnswerBlot.blotName = 'answer';
-        AnswerBlot.tagName = 'DIV';
-        AnswerBlot.className = 'sn-answer-block';
-        Quill.register(AnswerBlot);
-
-        var icons = Quill.import('ui/icons');
-        icons['answer'] = '<i class="fa-solid fa-eye-slash" title="Bôi đen văn bản và nhấn để Ẩn/Hiện đáp án" style="font-size: 16px; display:flex; align-items:center; justify-content:center; height:100%;"></i>';
-
-        document.getElementById('editor').addEventListener('click', function(e) {
-            let block = e.target.closest('.sn-answer-block');
-            if (block) block.classList.toggle('hidden');
-        });
-
-        // ==========================================
-        // CẤU HÌNH FIREBASE & ỨNG DỤNG
-        // ==========================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyD5HQrVrAaVyEjO-ICJm8RuCh6NawEAf-g",
-            authDomain: "hupernotes.firebaseapp.com",
-            databaseURL: "https://hupernotes-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "hupernotes",
-            storageBucket: "hupernotes.firebasestorage.app",
-            messagingSenderId: "442618106279",
-            appId: "1:442618106279:web:ba42bbd1094d48ce7be682"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        let currentUser = null;
-        let appData = { subjects: [] };
-        let currentSubjectId = null;
-        let currentDocId = null;
-        let quill;
-
-        document.getElementById('tabs-container').addEventListener('wheel', (evt) => {
-            evt.preventDefault();
-            document.getElementById('tabs-container').scrollLeft += evt.deltaY;
-        });
-
-        window.onload = () => {
-            if(localStorage.getItem('sn_current_user')) {
-                currentUser = localStorage.getItem('sn_current_user');
-                initApp();
-            }
-        };
-
-        function handleLogin() {
-            const user = document.getElementById('username').value.trim();
-            if(!user) return alert("Nhập tên đăng nhập!");
-            currentUser = user;
-            localStorage.setItem('sn_current_user', currentUser);
-            initApp();
-        }
-
-        function handleLogout() {
-            localStorage.removeItem('sn_current_user');
-            location.reload();
-        }
-
-        function saveData() { 
-            localStorage.setItem(`sn_data_${currentUser}`, JSON.stringify(appData)); 
-            if(currentUser) {
-                db.ref('users/' + currentUser).set(appData).catch(error => console.error("Lỗi đồng bộ Firebase:", error));
-            }
-        }
-        
-        function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
-
-        async function initApp() {
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('app-container').style.display = 'flex';
-            document.getElementById('display-name').textContent = currentUser;
-            document.getElementById('avatar-text').textContent = currentUser.charAt(0).toUpperCase();
-
-            try {
-                const snapshot = await db.ref('users/' + currentUser).once('value');
-                if (snapshot.exists()) {
-                    appData = snapshot.val();
-                    if (!appData.subjects) appData.subjects = [];
-                } else {
-                    appData = JSON.parse(localStorage.getItem(`sn_data_${currentUser}`)) || { subjects: [] };
-                }
-            } catch (error) {
-                appData = JSON.parse(localStorage.getItem(`sn_data_${currentUser}`)) || { subjects: [] };
-            }
-            
-            if(!quill) {
-                window.katex = katex;
-                quill = new Quill('#editor', {
-                    theme: 'snow',
-                    modules: { 
-                        formula: true, 
-                        toolbar: {
-                            container: [
-                                [{ 'font': [] }, { 'size': [] }],
-                                [{ 'header': [1, 2, 3, false] }],
-                                ['bold', 'italic', 'underline', 'strike'],
-                                [{ 'color': [] }, { 'background': [] }],
-                                ['answer'], 
-                                [{ 'script': 'sub'}, { 'script': 'super' }],
-                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                ['formula', 'image', 'code-block'],
-                                ['clean']
-                            ],
-                            handlers: {
-                                'answer': function() {
-                                    let range = quill.getSelection();
-                                    if (range) {
-                                        let format = quill.getFormat(range);
-                                        quill.format('answer', !format.answer);
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    placeholder: 'Soạn thảo hoặc dán nội dung từ AI vào đây...'
-                });
-
-                quill.on('text-change', () => {
-                    if(currentSubjectId && currentDocId) {
-                        let doc = appData.subjects.find(s => s.id === currentSubjectId).docs.find(d => d.id === currentDocId);
-                        if(doc) { doc.content = quill.root.innerHTML; saveData(); }
-                    }
-                });
-
-                quill.root.addEventListener('paste', handleAIPaste, true);
-            }
-
-            renderSubjects();
-            renderTabs();
-        }
-
-        // ==========================================
-        // NHẬP / XUẤT JSON
-        // ==========================================
-        function exportSubjectJSON() {
-            if(!currentSubjectId) return alert("Vui lòng chọn 1 môn học bên thanh menu để xuất file!");
-            let subject = appData.subjects.find(s => s.id === currentSubjectId);
-            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(subject));
-            let downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `SuperNotes_${subject.name}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        function importSubjectJSON(event) {
-            let file = event.target.files[0];
-            if(!file) return;
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    let importedData = JSON.parse(e.target.result);
-                    if(importedData.name && Array.isArray(importedData.docs)) {
-                        importedData.id = generateId(); 
-                        importedData.docs.forEach(doc => doc.id = generateId());
-                        appData.subjects.push(importedData);
-                        saveData(); renderSubjects();
-                        alert(`Đã tải lên môn học: "${importedData.name}" thành công!`);
-                    } else {
-                        alert("File JSON không hợp lệ!");
-                    }
-                } catch(err) { alert("Lỗi đọc file JSON."); }
-                event.target.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        function changeZoom(size) { document.getElementById('editor').style.fontSize = size; }
-
-        // ==========================================
-        // ĐỔI TÊN VÀ XÓA (MÔN HỌC & TAB)
-        // ==========================================
-        function renameSubject(id) {
-            let subject = appData.subjects.find(s => s.id === id);
-            let newName = prompt("Đổi tên môn học:", subject.name);
-            if (newName && newName.trim() !== "") {
-                subject.name = newName.trim();
-                saveData(); renderSubjects();
-            }
-        }
-
-        function deleteSubject(id) {
-            let subject = appData.subjects.find(s => s.id === id);
-            if (confirm(`Bạn có chắc muốn xóa vĩnh viễn môn học "${subject.name}"?`)) {
-                appData.subjects = appData.subjects.filter(s => s.id !== id);
-                if (currentSubjectId === id) {
-                    currentSubjectId = appData.subjects.length > 0 ? appData.subjects[0].id : null;
-                    currentDocId = currentSubjectId && appData.subjects[0].docs.length > 0 ? appData.subjects[0].docs[0].id : null;
-                }
-                saveData(); renderSubjects(); renderTabs();
-            }
-        }
-
-        function renameTab(id) {
-            let subject = appData.subjects.find(s => s.id === currentSubjectId);
-            let doc = subject.docs.find(d => d.id === id);
-            let newTitle = prompt("Đổi tên Tab:", doc.title);
-            if (newTitle && newTitle.trim() !== "") {
-                doc.title = newTitle.trim();
-                saveData(); renderTabs();
-            }
-        }
-
-        function deleteTab(id) {
-            let subject = appData.subjects.find(s => s.id === currentSubjectId);
-            let doc = subject.docs.find(d => d.id === id);
-            if (confirm(`Bạn có chắc muốn xóa tab "${doc.title}"?`)) {
-                subject.docs = subject.docs.filter(d => d.id !== id);
-                if (currentDocId === id) {
-                    currentDocId = subject.docs.length > 0 ? subject.docs[0].id : null;
-                }
-                saveData(); renderTabs(); loadEditorContent();
-            }
-        }
-
-        // ==========================================
-        // BỘ XỬ LÝ DÁN NÂNG CẤP V4 (SỬA LỖI XUỐNG DÒNG)
-        // ==========================================
-        function handleAIPaste(e) {
-            e.preventDefault();
-            let clipboardHTML = e.clipboardData.getData('text/html');
-            let clipboardText = e.clipboardData.getData('text/plain');
-            
-            let processedText = clipboardText || '';
-
-            if (clipboardHTML) {
-                let parser = new DOMParser();
-                let doc = parser.parseFromString(clipboardHTML, 'text/html');
-                
-                let mathNodes = doc.querySelectorAll('math, .katex, mjx-container, .math-wrapper, [data-tex]');
-                mathNodes.forEach(node => {
-                    let tex = '';
-                    let anno = node.querySelector('annotation[encoding="application/x-tex"], annotation');
-                    if (anno) {
-                        tex = anno.textContent;
-                    } else if (node.getAttribute('data-tex')) {
-                        tex = node.getAttribute('data-tex');
-                    } else {
-                        let mathml = node.querySelector('math, .katex-mathml');
-                        if(mathml) tex = mathml.textContent;
-                        else tex = node.textContent; 
-                    }
-                    if (tex && tex.trim() !== '') {
-                        node.replaceWith(doc.createTextNode(` $$${tex.trim()}$$ `));
-                    }
-                });
-
-                doc.querySelectorAll('.katex-html').forEach(el => el.remove());
-
-                let turndownService = new TurndownService({ headingStyle: 'atx', bulletListMarker: '-' });
-                turndownService.escape = function (str) { return str; };
-                
-                // ĐÃ LOẠI BỎ LỆNH 'KEEP' GÂY LỖI CHẬP DÒNG DẤU SAO (*).
-                turndownService.keep(['sup', 'sub']); 
-                
-                processedText = turndownService.turndown(doc.body.innerHTML);
-            }
-
-            if (!processedText) return;
-
-            processedText = processedText.replace(/[\u200B-\u200D\uFEFF]/g, ''); 
-            processedText = processedText.replace(//g, '\\not ');
-            
-            processedText = processedText.replace(/α/g, '\\alpha ');
-            processedText = processedText.replace(/β/g, '\\beta ');
-            processedText = processedText.replace(/γ/g, '\\gamma ');
-            processedText = processedText.replace(/Δ/g, '\\Delta ');
-            processedText = processedText.replace(/π/g, '\\pi ');
-
-            let mathBlocks = [];
-            const saveMath = (formula, isBlock) => {
-                let id = `MATHBLOCK${mathBlocks.length}XYZ`; 
-                let cleanFormula = formula.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                let latexCode = isBlock ? `\\displaystyle ${cleanFormula}` : cleanFormula;
-                mathBlocks.push({ id, html: `<span class="ql-formula" data-value="${latexCode}"></span>` });
-                return id;
-            };
-
-            processedText = processedText.replace(/\$\$(.*?)\$\$/gs, (m, f) => saveMath(f, true));
-            processedText = processedText.replace(/\\\[(.*?)\\\]/gs, (m, f) => saveMath(f, true));
-            processedText = processedText.replace(/(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)/g, (m, f) => saveMath(f, false));
-            processedText = processedText.replace(/\\\((.*?)\\\)/gs, (m, f) => saveMath(f, false));
-
-            processedText = processedText.replace(/\\(int|frac|sum|sqrt|lim|rightarrow|Delta|pi|alpha|beta|ce|mu|neq|pm|infty|not)/g, '\\\\$1');
-
-            let finalHTML = marked.parse(processedText);
-
-            mathBlocks.forEach(block => {
-                finalHTML = finalHTML.replace(block.id, block.html);
-            });
-
-            let range = quill.getSelection(true) || { index: quill.getLength() };
-            quill.clipboard.dangerouslyPasteHTML(range.index, finalHTML);
-        }
-
-        // ==========================================
-        // GIAO DIỆN & RENDER
-        // ==========================================
-        function changeViewMode(mode) {
-            document.body.classList.remove('force-desktop', 'force-mobile');
-            if (mode === 'desktop') document.body.classList.add('force-desktop');
-            if (mode === 'mobile') document.body.classList.add('force-mobile');
-        }
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay-mobile');
-            const isMobile = window.innerWidth <= 768 || document.body.classList.contains('force-mobile');
-            if (isMobile && !document.body.classList.contains('force-desktop')) {
-                sidebar.classList.toggle('open'); overlay.classList.toggle('show');
-            } else {
-                sidebar.classList.toggle('collapsed');
-            }
-        }
-
-        function renderSubjects() {
-            const list = document.getElementById('subject-list');
-            list.innerHTML = '';
-            appData.subjects.forEach(sub => {
-                let li = document.createElement('li');
-                li.className = `subject-item ${sub.id === currentSubjectId ? 'active' : ''}`;
-                
-                let nameDiv = document.createElement('div');
-                nameDiv.innerHTML = `<i class="fa-solid fa-folder"></i> ${sub.name}`;
-                nameDiv.style.flexGrow = '1'; nameDiv.style.overflow = 'hidden'; nameDiv.style.textOverflow = 'ellipsis';
-                nameDiv.onclick = () => {
-                    currentSubjectId = sub.id;
-                    currentDocId = sub.docs.length > 0 ? sub.docs[0].id : null;
-                    renderSubjects(); renderTabs();
-                    if(window.innerWidth <= 768 && !document.body.classList.contains('force-desktop')) {
-                        document.getElementById('sidebar').classList.remove('open');
-                        document.getElementById('overlay-mobile').classList.remove('show');
-                    }
-                };
-                li.appendChild(nameDiv);
-
-                let actionsDiv = document.createElement('div');
-                actionsDiv.className = 'subject-actions';
-                
-                let editBtn = document.createElement('i'); editBtn.className = 'fa-solid fa-pen';
-                editBtn.onclick = (e) => { e.stopPropagation(); renameSubject(sub.id); };
-                
-                let delBtn = document.createElement('i'); delBtn.className = 'fa-solid fa-trash';
-                delBtn.onclick = (e) => { e.stopPropagation(); deleteSubject(sub.id); };
-
-                actionsDiv.appendChild(editBtn); actionsDiv.appendChild(delBtn);
-                li.appendChild(actionsDiv);
-                list.appendChild(li);
-            });
-        }
-
-        function renderTabs() {
-            const container = document.getElementById('tabs-container');
-            container.innerHTML = '';
-            if(!currentSubjectId) { loadEditorContent(); return; }
-            
-            let subject = appData.subjects.find(s => s.id === currentSubjectId);
-            subject.docs.forEach(doc => {
-                let div = document.createElement('div');
-                div.className = `tab ${doc.id === currentDocId ? 'active' : ''}`;
-                
-                let nameSpan = document.createElement('span');
-                nameSpan.textContent = doc.title;
-                nameSpan.onclick = () => { currentDocId = doc.id; renderTabs(); loadEditorContent(); };
-                div.appendChild(nameSpan);
-
-                if (doc.id === currentDocId) {
-                    let actionsDiv = document.createElement('div');
-                    actionsDiv.className = 'tab-actions';
-
-                    let editBtn = document.createElement('i'); editBtn.className = 'fa-solid fa-pen';
-                    editBtn.onclick = (e) => { e.stopPropagation(); renameTab(doc.id); };
-                    
-                    let delBtn = document.createElement('i'); delBtn.className = 'fa-solid fa-times';
-                    delBtn.onclick = (e) => { e.stopPropagation(); deleteTab(doc.id); };
-
-                    actionsDiv.appendChild(editBtn); actionsDiv.appendChild(delBtn);
-                    div.appendChild(actionsDiv);
-                }
-                container.appendChild(div);
-            });
-            loadEditorContent();
-        }
-
-        function addNewTab() {
-            if(!currentSubjectId) return alert("Vui lòng chọn hoặc tạo Môn học bên trái trước!");
-            let title = prompt('Tên tab mới:');
-            if(title) {
-                let subject = appData.subjects.find(s => s.id === currentSubjectId);
-                let newDoc = { id: generateId(), title: title, content: `<h1>${title}</h1>` };
-                subject.docs.push(newDoc);
-                currentDocId = newDoc.id; 
-                saveData(); renderTabs();
-                setTimeout(() => {
-                    let container = document.getElementById('tabs-container');
-                    container.scrollLeft = container.scrollWidth;
-                }, 50);
-            }
-        }
-
-        document.getElementById('add-subject-btn').onclick = () => {
-            let name = prompt('Tên môn học:');
-            if(name) {
-                appData.subjects.push({ id: generateId(), name: name, docs: [] });
-                saveData(); renderSubjects();
-            }
-        };
-
-        function loadEditorContent() {
-            if(!currentSubjectId || !currentDocId) { quill.root.innerHTML = ''; quill.disable(); return; }
-            quill.enable();
-            let doc = appData.subjects.find(s => s.id === currentSubjectId).docs.find(d => d.id === currentDocId);
-            quill.root.innerHTML = doc.content || '';
-        }
-
-        function exportToPDF() {
-            document.getElementById('pdf-modal').style.display = 'none';
-            if(!currentDocId) return alert("Chọn tài liệu để xuất PDF!");
-            let doc = appData.subjects.find(s => s.id === currentSubjectId).docs.find(d => d.id === currentDocId);
-            
-            let mTop = parseFloat(document.getElementById('m-top').value) || 20;
-            let mBottom = parseFloat(document.getElementById('m-bottom').value) || 20;
-            let mLeft = parseFloat(document.getElementById('m-left').value) || 25;
-            let mRight = parseFloat(document.getElementById('m-right').value) || 20;
-
-            let printElement = document.createElement('div');
-            printElement.innerHTML = doc.content;
-            printElement.style.fontFamily = "'Times New Roman', serif";
-            printElement.style.fontSize = "16px";
-            printElement.style.lineHeight = "1.6";
-
-            var opt = {
-                margin:       [mTop, mRight, mBottom, mLeft],
-                filename:     `${doc.title}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(printElement).save();
-        }
-    </script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => {
-          console.log('Service Worker đăng ký thành công!', reg);
-        })
-        .catch((err) => {
-          console.log('Service Worker đăng ký thất bại: ', err);
-        });
-    });
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a1020">
+  <meta name="description" content="HabitFlow – hệ thống theo dõi thói quen, mục tiêu, công việc và hành trình phát triển bản thân trong một giao diện trực quan trên điện thoại lẫn laptop.">
+  <meta name="robots" content="index,follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="HabitFlow – Mỗi ngày một bước, mọi tiến bộ đều được nhìn thấy">
+  <meta property="og:description" content="Không chỉ tick thói quen. HabitFlow giúp bạn biến mục tiêu thành hành động, nhìn rõ tiến độ và quay lại đúng hướng mỗi ngày.">
+  <title>HabitFlow – Công cụ đồng hành thay đổi bản thân</title>
+
+  <!--
+    ================================================================
+    VÙNG DỄ SỬA NHẤT
+    - Giá bán và thông tin liên hệ: tìm "const BUSINESS" ở cuối file.
+    - Nội dung chữ: tìm trực tiếp câu muốn thay bằng Ctrl + F.
+    - Màu chính: tìm "--brand" trong phần :root bên dưới.
+    File này độc lập: toàn bộ HTML + CSS + JavaScript nằm trong 1 file.
+    ================================================================
+  -->
+
+  <style>
+    :root {
+      --bg: #080d1a;
+      --bg-soft: #0d1427;
+      --surface: rgba(17, 25, 46, .82);
+      --surface-solid: #11192e;
+      --surface-2: #17213b;
+      --text: #f7f8ff;
+      --muted: #aeb8d0;
+      --line: rgba(190, 202, 235, .14);
+      --brand: #7c66ff;
+      --brand-2: #9d8cff;
+      --mint: #48e2c2;
+      --rose: #ff7f9f;
+      --gold: #ffc866;
+      --success: #57dda7;
+      --shadow: 0 28px 80px rgba(0, 0, 0, .34);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --max: 1180px;
+    }
+
+    html[data-theme="light"] {
+      --bg: #f6f7ff;
+      --bg-soft: #eceffd;
+      --surface: rgba(255, 255, 255, .88);
+      --surface-solid: #ffffff;
+      --surface-2: #f1f3ff;
+      --text: #171a2d;
+      --muted: #5e6680;
+      --line: rgba(47, 56, 91, .13);
+      --shadow: 0 24px 68px rgba(72, 79, 128, .15);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 90px; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 7%, rgba(124, 102, 255, .18), transparent 28rem),
+        radial-gradient(circle at 90% 12%, rgba(72, 226, 194, .11), transparent 24rem),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body.modal-open { overflow: hidden; }
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; }
+    img, svg { display: block; max-width: 100%; }
+    ::selection { color: #fff; background: rgba(124, 102, 255, .78); }
+
+    .skip-link {
+      position: fixed;
+      z-index: 999;
+      top: 10px;
+      left: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      background: #111;
+      border-radius: 10px;
+      transform: translateY(-140%);
+    }
+    .skip-link:focus { transform: translateY(0); }
+
+    .container { width: min(calc(100% - 40px), var(--max)); margin-inline: auto; }
+    .section { padding: 106px 0; position: relative; }
+    .section-sm { padding: 70px 0; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 16px;
+      color: var(--mint);
+      font-size: .78rem;
+      font-weight: 850;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 22px;
+      height: 2px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+    .section-title {
+      max-width: 810px;
+      margin: 0;
+      font-size: clamp(2rem, 4.3vw, 3.65rem);
+      line-height: 1.08;
+      letter-spacing: -.045em;
+    }
+    .section-lead {
+      max-width: 720px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.5vw, 1.18rem);
+    }
+    .muted { color: var(--muted); }
+    .gradient-text {
+      color: transparent;
+      background: linear-gradient(110deg, #b9adff, var(--mint));
+      background-clip: text;
+      -webkit-background-clip: text;
+    }
+
+    .topbar {
+      position: sticky;
+      z-index: 90;
+      top: 0;
+      border-bottom: 1px solid transparent;
+      background: rgba(8, 13, 26, .7);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: border-color .2s ease, background .2s ease;
+    }
+    html[data-theme="light"] .topbar { background: rgba(246, 247, 255, .78); }
+    .topbar.scrolled { border-color: var(--line); }
+    .nav {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 1.14rem;
+      font-weight: 900;
+      letter-spacing: -.02em;
+    }
+    .brand-mark {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .22);
+      border-radius: 13px;
+      background: linear-gradient(145deg, #9685ff, #7059f2);
+      box-shadow: 0 10px 28px rgba(124, 102, 255, .33);
+    }
+    .brand-mark span { display: flex; gap: 3px; }
+    .brand-mark i { width: 5px; height: 5px; border-radius: 99px; background: #fff; }
+    .nav-links { display: flex; align-items: center; gap: 27px; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .92rem;
+      font-weight: 700;
+      transition: color .2s ease;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      display: inline-grid;
+      place-items: center;
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--surface);
+      transition: transform .2s ease, border-color .2s ease;
+    }
+    .icon-btn:hover { transform: translateY(-2px); border-color: rgba(124, 102, 255, .58); }
+
+    .btn {
+      min-height: 50px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 20px;
+      color: #fff;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      background: transparent;
+      text-decoration: none;
+      font-weight: 850;
+      line-height: 1.15;
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, #8a74ff, #6650eb);
+      box-shadow: 0 13px 34px rgba(115, 91, 245, .3);
+    }
+    .btn-primary:hover { box-shadow: 0 17px 40px rgba(115, 91, 245, .42); }
+    .btn-secondary { color: var(--text); border-color: var(--line); background: var(--surface); }
+    .btn-secondary:hover { border-color: rgba(124, 102, 255, .48); }
+    .btn-small { min-height: 42px; padding: 10px 16px; font-size: .9rem; }
+    .btn-wide { width: 100%; }
+    .btn svg, .contact-link svg { flex: 0 0 auto; width: 19px; height: 19px; }
+
+    .hero { padding: 82px 0 76px; overflow: hidden; }
+    .hero::before {
+      content: "";
+      position: absolute;
+      width: 560px;
+      height: 560px;
+      right: -270px;
+      top: 20px;
+      border: 1px solid rgba(124, 102, 255, .17);
+      border-radius: 50%;
+      box-shadow: inset 0 0 110px rgba(124, 102, 255, .08);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(480px, 1.1fr);
+      align-items: center;
+      gap: 70px;
+    }
+    .hero-copy { position: relative; z-index: 1; }
+    .launch-badge {
+      width: fit-content;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 23px;
+      padding: 8px 13px;
+      color: #dcd7ff;
+      border: 1px solid rgba(157, 140, 255, .28);
+      border-radius: 999px;
+      background: rgba(124, 102, 255, .1);
+      font-size: .82rem;
+      font-weight: 750;
+    }
+    html[data-theme="light"] .launch-badge { color: #5b47cf; }
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 6px rgba(72, 226, 194, .11);
+    }
+    .hero h1 {
+      max-width: 680px;
+      margin: 0;
+      font-size: clamp(2.75rem, 5.9vw, 5.45rem);
+      line-height: .98;
+      letter-spacing: -.065em;
+    }
+    .hero h1 em { font-style: normal; color: var(--brand-2); }
+    .hero-lead {
+      max-width: 650px;
+      margin: 26px 0 0;
+      color: var(--muted);
+      font-size: clamp(1.06rem, 1.55vw, 1.24rem);
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .micro-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 650;
+    }
+    .micro-trust span { display: inline-flex; align-items: center; gap: 7px; }
+    .micro-trust i { color: var(--mint); font-style: normal; }
+    .hero-quote {
+      margin: 29px 0 0;
+      padding-left: 16px;
+      color: var(--muted);
+      border-left: 2px solid var(--mint);
+      font-size: .91rem;
+    }
+
+    .product-stage { position: relative; min-width: 0; }
+    .product-stage::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: 8% 5% -7%;
+      border-radius: 50%;
+      background: rgba(124, 102, 255, .26);
+      filter: blur(70px);
+    }
+    .app-shell {
+      padding: 15px;
+      overflow: hidden;
+      border: 1px solid rgba(184, 194, 230, .2);
+      border-radius: 29px;
+      background: rgba(11, 17, 33, .88);
+      box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, .035) inset;
+      transform: perspective(1400px) rotateY(-3deg) rotateX(1deg);
+    }
+    html[data-theme="light"] .app-shell { background: rgba(240, 242, 252, .94); }
+    .app-window { overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--bg-soft); }
+    .app-top {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 15px;
+      border-bottom: 1px solid var(--line);
+    }
+    .app-brand { display: flex; align-items: center; gap: 9px; font-size: .8rem; font-weight: 850; }
+    .app-brand .brand-mark { width: 29px; height: 29px; border-radius: 10px; }
+    .app-brand .brand-mark i { width: 4px; height: 4px; }
+    .today-chip { padding: 6px 9px; color: var(--muted); border-radius: 9px; background: var(--surface-2); font-size: .66rem; font-weight: 700; }
+    .app-layout { display: grid; grid-template-columns: 132px 1fr; min-height: 420px; }
+    .app-sidebar { padding: 17px 11px; border-right: 1px solid var(--line); background: rgba(124, 102, 255, .045); }
+    .side-profile { display: flex; gap: 8px; align-items: center; margin: 0 4px 18px; }
+    .avatar { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; background: rgba(72, 226, 194, .15); color: var(--mint); font-size: .72rem; font-weight: 900; }
+    .side-profile div { min-width: 0; }
+    .side-profile strong, .side-profile small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .side-profile strong { font-size: .65rem; }
+    .side-profile small { color: var(--muted); font-size: .53rem; }
+    .side-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      padding: 8px;
+      color: var(--muted);
+      border-radius: 9px;
+      font-size: .62rem;
+      font-weight: 700;
+    }
+    .side-item::before { content: ""; width: 7px; height: 7px; border: 1.5px solid currentColor; border-radius: 2px; }
+    .side-item.active { color: #fff; background: linear-gradient(135deg, rgba(124, 102, 255, .9), rgba(100, 78, 231, .86)); }
+    .app-main { min-width: 0; padding: 18px; }
+    .app-main-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+    .app-main h3 { margin: 0; font-size: 1.02rem; line-height: 1.2; }
+    .app-main-head p { margin: 4px 0 0; color: var(--muted); font-size: .58rem; }
+    .week-badge { padding: 6px 8px; color: var(--mint); border: 1px solid rgba(72, 226, 194, .2); border-radius: 8px; background: rgba(72, 226, 194, .07); font-size: .54rem; font-weight: 800; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .mini-stat { padding: 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+    .mini-stat small { color: var(--muted); font-size: .5rem; }
+    .mini-stat strong { display: block; margin-top: 2px; font-size: .88rem; }
+    .mini-stat em { color: var(--mint); font-size: .48rem; font-style: normal; }
+    .app-panels { display: grid; grid-template-columns: 1.1fr .9fr; gap: 8px; margin-top: 8px; }
+    .app-panel { min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    .panel-label { display: flex; justify-content: space-between; color: var(--muted); font-size: .52rem; font-weight: 800; }
+    .habit-row { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+    .habit-check { width: 21px; height: 21px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 7px; color: #fff; background: var(--surface-2); font-size: .55rem; }
+    .habit-check.done { border-color: transparent; background: linear-gradient(135deg, var(--mint), #27b997); }
+    .habit-data { min-width: 0; flex: 1; }
+    .habit-data b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .56rem; }
+    .habit-data small { display: block; color: var(--muted); font-size: .46rem; }
+    .tiny-progress { width: 38px; height: 4px; overflow: hidden; border-radius: 99px; background: var(--surface-2); }
+    .tiny-progress i { display: block; height: 100%; border-radius: inherit; background: var(--brand-2); }
+    .bar-chart { height: 110px; display: flex; align-items: end; gap: 5px; padding-top: 10px; }
+    .bar-chart i { flex: 1; min-width: 4px; border-radius: 5px 5px 2px 2px; background: linear-gradient(to top, rgba(124, 102, 255, .38), var(--brand-2)); }
+    .chart-days { display: flex; justify-content: space-between; color: var(--muted); font-size: .42rem; }
+    .heatmap { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: 10px; }
+    .heatmap i { aspect-ratio: 1; border-radius: 2px; background: rgba(124, 102, 255, .13); }
+    .heatmap i:nth-child(3n), .heatmap i:nth-child(7n) { background: rgba(124, 102, 255, .45); }
+    .heatmap i:nth-child(5n), .heatmap i:nth-child(11n) { background: rgba(72, 226, 194, .65); }
+    .floating-note {
+      position: absolute;
+      right: -18px;
+      bottom: 30px;
+      max-width: 190px;
+      padding: 13px 15px;
+      border: 1px solid rgba(72, 226, 194, .22);
+      border-radius: 15px;
+      background: rgba(12, 27, 38, .94);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, .28);
+      font-size: .72rem;
+    }
+    .floating-note b { display: block; margin-bottom: 3px; color: var(--mint); font-size: .63rem; }
+
+    .value-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .value-item { padding: 24px 22px; border-right: 1px solid var(--line); }
+    .value-item:last-child { border-right: 0; }
+    .value-item strong { display: block; font-size: 1.05rem; }
+    .value-item span { display: block; margin-top: 4px; color: var(--muted); font-size: .84rem; }
+
+    .story-grid { display: grid; grid-template-columns: .78fr 1.22fr; gap: 78px; align-items: start; }
+    .story-card {
+      position: sticky;
+      top: 110px;
+      padding: 31px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(145deg, rgba(124, 102, 255, .16), rgba(72, 226, 194, .06)), var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .story-number { color: var(--brand-2); font-size: 3.4rem; font-weight: 950; line-height: 1; letter-spacing: -.06em; }
+    .story-card h3 { margin: 17px 0 10px; font-size: 1.45rem; line-height: 1.22; }
+    .story-card p { margin: 0; color: var(--muted); }
+    .pain-list { display: grid; gap: 18px; }
+    .pain-item { display: grid; grid-template-columns: 54px 1fr; gap: 18px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+    .pain-item:first-child { padding-top: 0; }
+    .pain-item:last-child { border-bottom: 0; }
+    .pain-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 17px; background: rgba(124, 102, 255, .12); font-size: 1.35rem; }
+    .pain-item h3 { margin: 0 0 7px; font-size: 1.18rem; }
+    .pain-item p { margin: 0; color: var(--muted); }
+
+    .demo-wrap {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 65px;
+      align-items: center;
+      margin-top: 48px;
+      padding: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(145deg, rgba(124, 102, 255, .1), transparent 42%), var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .progress-orbit {
+      --progress: 25;
+      width: min(270px, 72vw);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      margin-inline: auto;
+      border-radius: 50%;
+      background: conic-gradient(var(--mint) calc(var(--progress) * 1%), rgba(127, 140, 180, .13) 0);
+      transition: background .3s ease;
+    }
+    .progress-orbit::before { content: ""; width: 78%; aspect-ratio: 1; border-radius: 50%; background: var(--surface-solid); box-shadow: inset 0 0 0 1px var(--line); }
+    .progress-label { position: absolute; text-align: center; }
+    .progress-label strong { display: block; font-size: 3rem; line-height: 1; letter-spacing: -.05em; }
+    .progress-label span { color: var(--muted); font-size: .82rem; font-weight: 700; }
+    .demo-copy h3 { margin: 0 0 8px; font-size: 1.55rem; }
+    .demo-copy > p { margin: 0 0 20px; color: var(--muted); }
+    .demo-list { display: grid; gap: 10px; }
+    .demo-habit {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 13px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--surface-solid);
+      transition: border-color .2s ease, transform .2s ease, background .2s ease;
+    }
+    .demo-habit:hover { transform: translateX(3px); border-color: rgba(124, 102, 255, .45); }
+    .demo-habit[aria-pressed="true"] { border-color: rgba(72, 226, 194, .32); background: rgba(72, 226, 194, .07); }
+    .demo-check { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-2); font-size: 1rem; }
+    .demo-habit[aria-pressed="true"] .demo-check { color: #071612; border-color: transparent; background: var(--mint); }
+    .demo-habit b { display: block; font-size: .96rem; }
+    .demo-habit small { display: block; margin-top: 2px; color: var(--muted); }
+    .demo-tag { padding: 5px 8px; color: var(--muted); border-radius: 999px; background: var(--surface-2); font-size: .68rem; font-weight: 800; }
+    .demo-message { min-height: 24px; margin: 16px 0 0 !important; color: var(--mint) !important; font-size: .88rem; font-weight: 750; }
+
+    .feature-head { display: flex; justify-content: space-between; align-items: end; gap: 30px; }
+    .feature-head .section-lead { max-width: 450px; margin-bottom: 7px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 50px; }
+    .feature-card {
+      min-height: 244px;
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+    }
+    .feature-card:hover { transform: translateY(-5px); border-color: rgba(124, 102, 255, .38); box-shadow: 0 20px 50px rgba(0, 0, 0, .14); }
+    .feature-icon { width: 49px; height: 49px; display: grid; place-items: center; border: 1px solid rgba(124, 102, 255, .2); border-radius: 15px; background: rgba(124, 102, 255, .11); font-size: 1.22rem; }
+    .feature-card:nth-child(3n+2) .feature-icon { border-color: rgba(72, 226, 194, .2); background: rgba(72, 226, 194, .1); }
+    .feature-card:nth-child(3n) .feature-icon { border-color: rgba(255, 127, 159, .18); background: rgba(255, 127, 159, .09); }
+    .feature-card h3 { margin: 19px 0 8px; font-size: 1.12rem; }
+    .feature-card p { margin: 0; color: var(--muted); font-size: .92rem; }
+    .feature-card .tiny-label { display: inline-block; margin-top: 15px; color: var(--brand-2); font-size: .72rem; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+
+    .goal-layout { display: grid; grid-template-columns: 1fr .92fr; gap: 65px; align-items: center; }
+    .goal-types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; margin-top: 30px; }
+    .goal-type { padding: 13px 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); font-size: .88rem; font-weight: 800; }
+    .goal-type span { color: var(--mint); margin-right: 7px; }
+    .goal-board { padding: 27px; border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow); }
+    .goal-board-head { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .goal-board-head h3 { margin: 0; font-size: 1.15rem; }
+    .goal-board-head span { padding: 6px 9px; color: var(--mint); border-radius: 8px; background: rgba(72, 226, 194, .1); font-size: .72rem; font-weight: 800; }
+    .goal-card { margin-top: 13px; padding: 17px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-solid); }
+    .goal-card-top { display: flex; justify-content: space-between; gap: 16px; }
+    .goal-card b { font-size: .92rem; }
+    .goal-card small { color: var(--muted); }
+    .goal-meter { height: 8px; overflow: hidden; margin-top: 12px; border-radius: 99px; background: var(--surface-2); }
+    .goal-meter i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--mint)); }
+    .milestones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 14px; }
+    .milestone { padding: 8px 4px; color: var(--muted); border: 1px solid var(--line); border-radius: 9px; text-align: center; font-size: .55rem; font-weight: 800; }
+    .milestone.done { color: #061612; border-color: transparent; background: var(--mint); }
+
+    .analytics-stage {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 16px;
+      margin-top: 46px;
+    }
+    .analytics-card { padding: 25px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+    .analytics-card h3 { margin: 0; font-size: 1.04rem; }
+    .analytics-card > p { margin: 5px 0 0; color: var(--muted); font-size: .82rem; }
+    .line-chart { width: 100%; height: 230px; margin-top: 18px; overflow: visible; }
+    .grid-line { stroke: currentColor; color: var(--line); stroke-width: 1; }
+    .area-fill { fill: url(#areaGradient); }
+    .trend-line { fill: none; stroke: var(--mint); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+    .trend-dot { fill: var(--surface-solid); stroke: var(--mint); stroke-width: 3; }
+    .chart-caption { display: flex; justify-content: space-between; color: var(--muted); font-size: .68rem; }
+    .insights { display: grid; gap: 10px; margin-top: 18px; }
+    .insight { display: grid; grid-template-columns: 38px 1fr; gap: 11px; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-solid); }
+    .insight-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: rgba(124, 102, 255, .11); }
+    .insight b { display: block; font-size: .83rem; }
+    .insight small { display: block; color: var(--muted); font-size: .72rem; }
+
+    .coach-layout {
+      display: grid;
+      grid-template-columns: .92fr 1.08fr;
+      gap: 62px;
+      align-items: center;
+    }
+    .coach-points { display: grid; gap: 12px; margin-top: 27px; }
+    .coach-point { display: flex; gap: 12px; color: var(--muted); }
+    .coach-point i { width: 24px; height: 24px; display: grid; flex: 0 0 auto; place-items: center; color: #061612; border-radius: 50%; background: var(--mint); font-size: .7rem; font-style: normal; font-weight: 900; }
+    .coach-panel { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow); }
+    .coach-head { display: flex; align-items: center; gap: 11px; padding: 4px 4px 17px; border-bottom: 1px solid var(--line); }
+    .coach-avatar { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(145deg, var(--brand-2), var(--brand)); font-size: 1.12rem; }
+    .coach-head b, .coach-head small { display: block; }
+    .coach-head small { color: var(--muted); font-size: .72rem; }
+    .coach-status { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 5px rgba(72, 226, 194, .1); }
+    .chat { min-height: 235px; display: flex; flex-direction: column; gap: 10px; padding: 17px 2px 12px; }
+    .bubble { max-width: 86%; padding: 12px 14px; border-radius: 15px; font-size: .84rem; }
+    .bubble-user { align-self: flex-end; color: #fff; border-bottom-right-radius: 4px; background: var(--brand); }
+    .bubble-coach { border: 1px solid var(--line); border-bottom-left-radius: 4px; background: var(--surface-solid); }
+    .coach-chips { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 13px; border-top: 1px solid var(--line); }
+    .coach-chip { padding: 8px 10px; color: var(--muted); cursor: pointer; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-solid); font-size: .72rem; font-weight: 750; }
+    .coach-chip:hover, .coach-chip:focus-visible { color: var(--text); border-color: rgba(124, 102, 255, .5); }
+    .coach-disclaimer { margin: 12px 0 0; color: var(--muted); font-size: .72rem; }
+
+    .comparison-wrap { margin-top: 44px; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow); }
+    .comparison { width: 100%; min-width: 760px; border-collapse: collapse; }
+    .comparison th, .comparison td { padding: 18px 20px; border-bottom: 1px solid var(--line); text-align: left; }
+    .comparison th { color: var(--muted); font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; }
+    .comparison th:first-child, .comparison td:first-child { width: 31%; }
+    .comparison th:last-child, .comparison td:last-child { background: rgba(124, 102, 255, .06); }
+    .comparison tr:last-child td { border-bottom: 0; }
+    .comparison td { font-size: .91rem; }
+    .comparison td:first-child { font-weight: 800; }
+    .yes { color: var(--mint); font-weight: 800; }
+    .neutral { color: var(--muted); }
+    .comparison-note { margin: 17px 0 0; color: var(--muted); font-size: .85rem; }
+
+    .experience-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+    .experience-card { padding: 27px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+    .experience-step { width: 38px; height: 38px; display: grid; place-items: center; color: #fff; border-radius: 12px; background: var(--brand); font-weight: 900; }
+    .experience-card h3 { margin: 18px 0 8px; font-size: 1.12rem; }
+    .experience-card p { margin: 0; color: var(--muted); }
+
+    .offer {
+      position: relative;
+      overflow: hidden;
+      padding: 54px;
+      border: 1px solid rgba(157, 140, 255, .28);
+      border-radius: 34px;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(72, 226, 194, .16), transparent 24rem),
+        linear-gradient(135deg, rgba(124, 102, 255, .19), rgba(124, 102, 255, .04)),
+        var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .offer::after { content: "H"; position: absolute; right: 18px; bottom: -118px; color: rgba(255, 255, 255, .025); font-size: 24rem; font-weight: 950; line-height: 1; }
+    html[data-theme="light"] .offer::after { color: rgba(70, 56, 160, .035); }
+    .offer-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.15fr .85fr; gap: 60px; align-items: center; }
+    .offer h2 { max-width: 700px; margin: 0; font-size: clamp(2.2rem, 4.2vw, 4rem); line-height: 1.05; letter-spacing: -.05em; }
+    .offer-copy > p { max-width: 650px; margin: 20px 0 0; color: var(--muted); }
+    .receive-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin-top: 26px; }
+    .receive-list span { display: flex; gap: 9px; color: var(--muted); font-size: .88rem; }
+    .receive-list i { color: var(--mint); font-style: normal; font-weight: 900; }
+    .price-card { padding: 28px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 24px; background: rgba(8, 13, 26, .6); }
+    html[data-theme="light"] .price-card { background: rgba(255, 255, 255, .7); }
+    .price-card .label { color: var(--muted); font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .price { display: flex; align-items: end; gap: 8px; margin: 9px 0 18px; }
+    .price strong { font-size: clamp(2.7rem, 5vw, 4.3rem); line-height: .94; letter-spacing: -.06em; }
+    .price span { padding-bottom: 6px; color: var(--muted); font-size: .86rem; }
+    .price-note { margin: 13px 0 0; color: var(--muted); text-align: center; font-size: .76rem; }
+
+    .faq-list { max-width: 900px; display: grid; gap: 10px; margin: 43px auto 0; }
+    details { border: 1px solid var(--line); border-radius: 17px; background: var(--surface); }
+    summary { position: relative; padding: 20px 54px 20px 21px; cursor: pointer; list-style: none; font-weight: 820; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; position: absolute; right: 20px; top: 50%; color: var(--brand-2); font-size: 1.5rem; line-height: 1; transform: translateY(-50%); }
+    details[open] summary::after { content: "–"; }
+    .faq-answer { padding: 0 21px 20px; color: var(--muted); }
+    .faq-answer p { margin: 0; }
+
+    .contact-strip { padding: 26px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(124, 102, 255, .055); }
+    .contact-inner { display: flex; align-items: center; justify-content: space-between; gap: 26px; }
+    .contact-inner h2 { margin: 0; font-size: clamp(1.3rem, 2.3vw, 1.9rem); letter-spacing: -.03em; }
+    .contact-inner p { margin: 5px 0 0; color: var(--muted); font-size: .9rem; }
+    .contact-actions { display: flex; flex-wrap: wrap; gap: 9px; justify-content: flex-end; }
+    .contact-link { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; color: var(--text); border: 1px solid var(--line); border-radius: 13px; background: var(--surface); text-decoration: none; font-size: .84rem; font-weight: 800; }
+    .contact-link:hover { border-color: rgba(124, 102, 255, .5); }
+
+    footer { padding: 31px 0 100px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 25px; color: var(--muted); font-size: .78rem; }
+    .footer-inner a { text-decoration: none; }
+    .footer-inner a:hover { color: var(--text); }
+
+    dialog {
+      width: min(calc(100% - 28px), 620px);
+      max-height: min(90vh, 760px);
+      padding: 0;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 27px;
+      background: var(--surface-solid);
+      box-shadow: 0 32px 100px rgba(0, 0, 0, .55);
+    }
+    dialog::backdrop { background: rgba(2, 5, 14, .76); backdrop-filter: blur(8px); }
+    .dialog-body { position: relative; padding: 31px; }
+    .dialog-close { position: absolute; top: 17px; right: 17px; }
+    .dialog-kicker { color: var(--mint); font-size: .76rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+    .dialog-body h2 { margin: 9px 48px 8px 0; font-size: clamp(1.65rem, 4vw, 2.35rem); line-height: 1.1; letter-spacing: -.04em; }
+    .dialog-body > p { margin: 0; color: var(--muted); }
+    .dialog-price { margin: 22px 0; padding: 17px; border: 1px solid rgba(124, 102, 255, .25); border-radius: 17px; background: rgba(124, 102, 255, .09); }
+    .dialog-price small { color: var(--muted); }
+    .dialog-price strong { display: block; margin-top: 2px; font-size: 2rem; letter-spacing: -.04em; }
+    .dialog-contacts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+    .dialog-contacts .contact-link { justify-content: center; min-height: 51px; }
+    .dialog-contacts .facebook { color: #fff; border-color: transparent; background: #1877f2; }
+    .dialog-contacts .zalo { color: #fff; border-color: transparent; background: #0768ff; }
+    .dialog-contacts .tiktok { color: #fff; border-color: transparent; background: #111; }
+    .dialog-contacts .email { color: var(--text); background: var(--surface-2); }
+    .copy-row { display: flex; gap: 9px; margin-top: 9px; }
+    .copy-row button { flex: 1; }
+    .dialog-note { margin-top: 16px !important; font-size: .77rem; text-align: center; }
+
+    .toast {
+      position: fixed;
+      z-index: 130;
+      left: 50%;
+      bottom: 92px;
+      max-width: calc(100% - 30px);
+      padding: 11px 16px;
+      color: #061612;
+      border-radius: 12px;
+      background: var(--mint);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, .28);
+      font-size: .85rem;
+      font-weight: 850;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, 18px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .mobile-cta {
+      position: fixed;
+      z-index: 80;
+      right: 12px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      left: 12px;
+      display: none;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: rgba(10, 16, 32, .88);
+      box-shadow: 0 14px 45px rgba(0, 0, 0, .38);
+      backdrop-filter: blur(18px);
+    }
+    html[data-theme="light"] .mobile-cta { background: rgba(255, 255, 255, .88); }
+    .mobile-cta .btn { min-height: 48px; width: 100%; }
+
+    :focus-visible { outline: 3px solid rgba(72, 226, 194, .78); outline-offset: 3px; }
+
+    @media (max-width: 1040px) {
+      .nav-links { display: none; }
+      .hero-grid { grid-template-columns: 1fr; gap: 54px; }
+      .hero-copy { max-width: 820px; }
+      .product-stage { max-width: 760px; margin-inline: auto; }
+      .story-grid { grid-template-columns: 1fr; gap: 42px; }
+      .story-card { position: static; }
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .goal-layout, .coach-layout { grid-template-columns: 1fr; }
+      .goal-board, .coach-panel { max-width: 760px; width: 100%; }
+      .offer-grid { grid-template-columns: 1fr; gap: 40px; }
+      .price-card { max-width: 520px; }
+    }
+
+    @media (max-width: 760px) {
+      .container { width: min(calc(100% - 28px), var(--max)); }
+      .section { padding: 78px 0; }
+      .section-sm { padding: 53px 0; }
+      .topbar .btn-small { display: none; }
+      .nav { min-height: 66px; }
+      .hero { padding: 58px 0 55px; }
+      .hero h1 { font-size: clamp(2.65rem, 13.2vw, 4.6rem); }
+      .hero-actions .btn { width: 100%; }
+      .app-shell { padding: 8px; border-radius: 22px; transform: none; }
+      .app-layout { grid-template-columns: 1fr; min-height: auto; }
+      .app-sidebar { display: none; }
+      .app-main { padding: 14px; }
+      .app-panels { grid-template-columns: 1fr; }
+      .app-panels .app-panel:last-child { display: none; }
+      .floating-note { right: 4px; bottom: -26px; }
+      .value-strip { grid-template-columns: repeat(2, 1fr); }
+      .value-item { border-bottom: 1px solid var(--line); }
+      .value-item:nth-child(2) { border-right: 0; }
+      .value-item:nth-child(3), .value-item:nth-child(4) { border-bottom: 0; }
+      .demo-wrap { grid-template-columns: 1fr; gap: 34px; padding: 25px 17px; }
+      .feature-head { display: block; }
+      .feature-grid { grid-template-columns: 1fr; margin-top: 35px; }
+      .feature-card { min-height: auto; }
+      .goal-types { grid-template-columns: 1fr; }
+      .analytics-stage { grid-template-columns: 1fr; }
+      .experience-grid { grid-template-columns: 1fr; }
+      .offer { padding: 35px 22px; border-radius: 27px; }
+      .receive-list { grid-template-columns: 1fr; }
+      .contact-inner, .footer-inner { align-items: flex-start; flex-direction: column; }
+      .contact-actions { justify-content: flex-start; }
+      .dialog-body { padding: 26px 18px 20px; }
+      .dialog-contacts { grid-template-columns: 1fr; }
+      .copy-row { flex-direction: column; }
+      .mobile-cta { display: block; }
+      footer { padding-bottom: 110px; }
+    }
+
+    @media (max-width: 460px) {
+      .brand-text-extra { display: none; }
+      .value-strip { grid-template-columns: 1fr; }
+      .value-item { border-right: 0; border-bottom: 1px solid var(--line) !important; }
+      .value-item:last-child { border-bottom: 0 !important; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stats-row .mini-stat:last-child { grid-column: 1 / -1; }
+      .demo-habit { grid-template-columns: 39px 1fr; }
+      .demo-tag { display: none; }
+      .milestones { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-copy { animation: rise .65s ease-out both; }
+      .product-stage { animation: rise .75s .08s ease-out both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    }
+  </style>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "HabitFlow",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Web, Android, iOS, Windows, macOS",
+    "description": "Công cụ theo dõi thói quen, mục tiêu, công việc và hành trình phát triển bản thân.",
+    "offers": {
+      "@type": "Offer",
+      "price": "70000",
+      "priceCurrency": "VND",
+      "availability": "https://schema.org/InStock"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Tuấn Hùng"
+    }
   }
-</script>
+  </script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Đi thẳng tới nội dung</a>
+
+  <header class="topbar" id="topbar">
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="HabitFlow - về đầu trang">
+        <span class="brand-mark" aria-hidden="true"><span><i></i><i></i><i></i></span></span>
+        <span>HabitFlow <span class="brand-text-extra">VIP</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Điều hướng chính">
+        <a href="#trai-nghiem">Trải nghiệm</a>
+        <a href="#tinh-nang">Tính năng</a>
+        <a href="#smart-coach">Smart Coach</a>
+        <a href="#so-sanh">So sánh</a>
+        <a href="#hoi-dap">Hỏi đáp</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Chuyển giao diện sáng/tối" title="Đổi giao diện">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <button class="btn btn-primary btn-small" type="button" data-open-offer>Nhận ưu đãi hôm nay</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero section" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="launch-badge"><span class="pulse" aria-hidden="true"></span> Giá mở bán <span data-business="price">70.000đ</span> · Bản cá nhân</div>
+          <h1>Đừng chờ đủ <em>động lực.</em> Hãy xây một hệ thống.</h1>
+          <p class="hero-lead">HabitFlow biến mục tiêu lớn thành những hành động nhỏ có thể làm ngay hôm nay — rồi giúp bạn nhìn thấy từng ngày mình đã thật sự tiến lên.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" type="button" data-open-offer>
+              Nhận ngay ưu đãi hôm nay
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <a class="btn btn-secondary" href="#trai-nghiem">Thử tick trực tiếp</a>
+          </div>
+          <div class="micro-trust" aria-label="Điểm nổi bật">
+            <span><i>✓</i> Dùng trên điện thoại & laptop</span>
+            <span><i>✓</i> Có chế độ offline</span>
+            <span><i>✓</i> Dễ sao lưu dữ liệu</span>
+          </div>
+          <p class="hero-quote">HabitFlow không phải phép màu. Nó là người đồng hành giúp bạn nhìn rõ điều cần làm, làm đều hơn và quay lại nhanh hơn sau những ngày chệch nhịp.</p>
+        </div>
+
+        <div class="product-stage" aria-label="Mô phỏng giao diện HabitFlow">
+          <div class="app-shell">
+            <div class="app-window">
+              <div class="app-top">
+                <div class="app-brand"><span class="brand-mark" aria-hidden="true"><span><i></i><i></i><i></i></span></span> HabitFlow</div>
+                <span class="today-chip">Hôm nay · 06/09</span>
+              </div>
+              <div class="app-layout">
+                <aside class="app-sidebar" aria-hidden="true">
+                  <div class="side-profile"><span class="avatar">B</span><div><strong>Chào, bạn</strong><small>Hành trình ngày 24</small></div></div>
+                  <div class="side-item active">Tổng quan</div>
+                  <div class="side-item">Thói quen</div>
+                  <div class="side-item">Công việc</div>
+                  <div class="side-item">Mục tiêu</div>
+                  <div class="side-item">Lịch</div>
+                  <div class="side-item">Phân tích</div>
+                  <div class="side-item">Smart Coach</div>
+                </aside>
+                <div class="app-main">
+                  <div class="app-main-head">
+                    <div><h3>Mỗi ngày một bước.</h3><p>Giữ nhịp vừa đủ để đi thật xa.</p></div>
+                    <span class="week-badge">Tuần này +12%</span>
+                  </div>
+                  <div class="stats-row">
+                    <div class="mini-stat"><small>Hoàn thành</small><strong>78%</strong><em>↑ 9% so tuần trước</em></div>
+                    <div class="mini-stat"><small>Chuỗi tốt nhất</small><strong>12 ngày</strong><em>Đọc sách</em></div>
+                    <div class="mini-stat"><small>Năng lượng</small><strong>8/10</strong><em>Ổn định</em></div>
+                  </div>
+                  <div class="app-panels">
+                    <div class="app-panel">
+                      <div class="panel-label"><span>THÓI QUEN HÔM NAY</span><span>3/4</span></div>
+                      <div class="habit-row"><span class="habit-check done">✓</span><span class="habit-data"><b>Uống đủ nước</b><small>2.000 ml · Sức khỏe</small></span><span class="tiny-progress"><i style="width:100%"></i></span></div>
+                      <div class="habit-row"><span class="habit-check done">✓</span><span class="habit-data"><b>Đọc sách</b><small>20 phút · Học tập</small></span><span class="tiny-progress"><i style="width:100%"></i></span></div>
+                      <div class="habit-row"><span class="habit-check done">✓</span><span class="habit-data"><b>Vận động</b><small>30 phút · Thể chất</small></span><span class="tiny-progress"><i style="width:100%"></i></span></div>
+                      <div class="habit-row"><span class="habit-check"></span><span class="habit-data"><b>Ngủ trước 23:00</b><small>Nhịp sống · Tối nay</small></span><span class="tiny-progress"><i style="width:20%"></i></span></div>
+                    </div>
+                    <div class="app-panel">
+                      <div class="panel-label"><span>NHỊP 7 NGÀY</span><span>78%</span></div>
+                      <div class="bar-chart" aria-hidden="true"><i style="height:45%"></i><i style="height:62%"></i><i style="height:54%"></i><i style="height:83%"></i><i style="height:70%"></i><i style="height:91%"></i><i style="height:78%"></i></div>
+                      <div class="chart-days"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+                    </div>
+                  </div>
+                  <div class="app-panel" style="margin-top:8px">
+                    <div class="panel-label"><span>DẤU CHÂN HÀNH TRÌNH</span><span>24 ngày</span></div>
+                    <div class="heatmap" aria-hidden="true">
+                      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="floating-note"><b>SMART COACH OFFLINE</b>“Bạn tiến tốt hơn vào những ngày bắt đầu bằng một việc nhỏ.”</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm" aria-label="Bốn giá trị chính">
+      <div class="container">
+        <div class="value-strip">
+          <div class="value-item"><strong>1 nơi duy nhất</strong><span>Thói quen, việc làm, mục tiêu và cảm xúc</span></div>
+          <div class="value-item"><strong>8 dạng mục tiêu</strong><span>Không ép mọi kế hoạch vào một chiếc khuôn</span></div>
+          <div class="value-item"><strong>7 · 30 · 90 ngày</strong><span>Nhìn xu hướng thay vì đoán bằng cảm giác</span></div>
+          <div class="value-item"><strong>Tùy biến sâu</strong><span>Màu, icon, lịch, nhịp và giao diện riêng</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="van-de">
+      <div class="container story-grid">
+        <div class="story-card">
+          <span class="story-number">01</span>
+          <h3>Vấn đề không phải bạn “thiếu ý chí”.</h3>
+          <p>Một hệ thống quá nặng, quá khô hoặc không cho bạn thấy ý nghĩa của tiến bộ rất dễ bị bỏ quên sau vài ngày.</p>
+        </div>
+        <div class="pain-list">
+          <div class="pain-item"><span class="pain-icon" aria-hidden="true">🗂️</span><div><h3>Bảng tracker đẹp lúc tải về, mệt lúc sử dụng</h3><p>Cuộn ô, dò cột, nhập công thức và chỉnh trên điện thoại khiến việc “theo dõi” đôi khi còn nặng hơn chính thói quen.</p></div></div>
+          <div class="pain-item"><span class="pain-icon" aria-hidden="true">🌫️</span><div><h3>Có dữ liệu nhưng không biết nên làm gì tiếp</h3><p>Một hàng dấu tick không tự nói cho bạn biết tuần nào đang xuống nhịp, mục tiêu nào quá sức hay hành động nào nên được ưu tiên.</p></div></div>
+          <div class="pain-item"><span class="pain-icon" aria-hidden="true">🧩</span><div><h3>Mỗi mục tiêu lại cần một cách đo khác nhau</h3><p>Đọc 20 phút, tiết kiệm 5 triệu, giảm đồ ngọt, duy trì giấc ngủ hay hoàn thành cột mốc không thể dùng chung một biểu mẫu cứng nhắc.</p></div></div>
+          <div class="pain-item"><span class="pain-icon" aria-hidden="true">↩️</span><div><h3>Bỏ một ngày rồi… bỏ luôn cả hành trình</h3><p>HabitFlow giúp bạn nhìn lại bằng dữ liệu, điều chỉnh cho vừa sức và quay lại từ bước nhỏ nhất — không phán xét.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="trai-nghiem">
+      <div class="container">
+        <p class="eyebrow">Thử ngay trên trang</p>
+        <h2 class="section-title">Cảm giác tiến bộ bắt đầu từ <span class="gradient-text">một lần tick.</span></h2>
+        <p class="section-lead">Bấm vào các thói quen bên dưới. Không công thức, không dò ô — chỉ một thao tác rõ ràng và một tín hiệu tích cực để bạn muốn tiếp tục.</p>
+        <div class="demo-wrap">
+          <div style="position:relative">
+            <div class="progress-orbit" id="progressOrbit" role="img" aria-label="Tiến độ hôm nay 25 phần trăm">
+              <div class="progress-label"><strong id="progressPercent">25%</strong><span id="progressCount">1/4 hoàn thành</span></div>
+            </div>
+          </div>
+          <div class="demo-copy">
+            <h3>Hôm nay của bạn</h3>
+            <p>Chọn việc đã làm. Bạn có thể bật/tắt lại bao nhiêu lần tùy ý.</p>
+            <div class="demo-list" id="demoList">
+              <button class="demo-habit" type="button" aria-pressed="true"><span class="demo-check">✓</span><span><b>Uống 2 lít nước</b><small>Sức khỏe · Mục tiêu số lượng</small></span><span class="demo-tag">2.000 ml</span></button>
+              <button class="demo-habit" type="button" aria-pressed="false"><span class="demo-check"></span><span><b>Đọc sách 20 phút</b><small>Học tập · Mục tiêu thời lượng</small></span><span class="demo-tag">20 phút</span></button>
+              <button class="demo-habit" type="button" aria-pressed="false"><span class="demo-check"></span><span><b>Đi bộ 5.000 bước</b><small>Thể chất · Mục tiêu tăng tiến</small></span><span class="demo-tag">5.000</span></button>
+              <button class="demo-habit" type="button" aria-pressed="false"><span class="demo-check"></span><span><b>Không dùng điện thoại sau 23:00</b><small>Giới hạn · Thói quen cần tránh</small></span><span class="demo-tag">Giới hạn</span></button>
+            </div>
+            <p class="demo-message" id="demoMessage" aria-live="polite">Một bước nhỏ đã được ghi nhận. Cứ đi tiếp.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tinh-nang">
+      <div class="container">
+        <div class="feature-head">
+          <div><p class="eyebrow">Toàn bộ hệ thống</p><h2 class="section-title">Không chỉ là một bảng tick được “làm đẹp”.</h2></div>
+          <p class="section-lead">HabitFlow gom những công cụ quan trọng của một hành trình thay đổi vào cùng một trải nghiệm trực quan.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card"><span class="feature-icon">✓</span><h3>Thói quen linh hoạt</h3><p>Đo theo lần tick, thời lượng, số lượng hoặc điều cần tránh. Tùy chọn lịch lặp, ngày trong tuần, màu, icon, nhóm và ghi chú.</p><span class="tiny-label">Daily system</span></article>
+          <article class="feature-card"><span class="feature-icon">◷</span><h3>Công việc & sự kiện</h3><p>Ghi việc cần làm, hạn hoàn thành, mức ưu tiên và sự kiện theo ngày để mọi hành động không còn nằm rải rác nhiều nơi.</p><span class="tiny-label">Action planning</span></article>
+          <article class="feature-card"><span class="feature-icon">◎</span><h3>Mục tiêu đa mô hình</h3><p>Tăng, giảm, tích lũy, duy trì, giới hạn, tần suất, chuỗi ngày hoặc cột mốc — chọn đúng cách đo cho đúng loại mục tiêu.</p><span class="tiny-label">Goal design</span></article>
+          <article class="feature-card"><span class="feature-icon">▦</span><h3>Lịch ngày · tuần · tháng</h3><p>Đổi góc nhìn theo thời gian, xem việc và thói quen cùng lịch để nhận ra ngày quá tải, khoảng trống và nhịp sống thực tế.</p><span class="tiny-label">Calendar views</span></article>
+          <article class="feature-card"><span class="feature-icon">↗</span><h3>Biểu đồ & heatmap</h3><p>Theo dõi tỷ lệ hoàn thành, chuỗi ngày, bảng xếp hạng thói quen, bản đồ nhiệt và xu hướng 7/30/90 ngày.</p><span class="tiny-label">Strong analytics</span></article>
+          <article class="feature-card"><span class="feature-icon">✦</span><h3>Smart Coach offline</h3><p>Tổng hợp dữ liệu và phản hồi theo mục tiêu, cảm xúc, năng lượng, nhịp gần đây để gợi ý một bước tiếp theo vừa sức.</p><span class="tiny-label">Private guidance</span></article>
+          <article class="feature-card"><span class="feature-icon">☻</span><h3>Nhật ký cảm xúc</h3><p>Ghi mood, năng lượng và vài dòng mỗi ngày. Đặt kết quả cạnh trạng thái để hiểu điều gì đang thực sự ảnh hưởng đến bạn.</p><span class="tiny-label">Self awareness</span></article>
+          <article class="feature-card"><span class="feature-icon">◉</span><h3>Focus Timer</h3><p>Khởi động phiên tập trung ngay trong hệ thống, giảm chuyển ứng dụng và kết nối thời gian tập trung với điều bạn muốn hoàn thành.</p><span class="tiny-label">Deep work</span></article>
+          <article class="feature-card"><span class="feature-icon">◐</span><h3>Tùy biến giao diện</h3><p>Chuyển sáng/tối, chọn Midnight, Ocean, Forest và màu nhấn. Hệ thống của bạn nên có cảm giác thật sự thuộc về bạn.</p><span class="tiny-label">Your space</span></article>
+          <article class="feature-card"><span class="feature-icon">∞</span><h3>Lịch sử hành trình</h3><p>Tự chọn ngày bắt đầu và xem lại toàn bộ ngày đã đi qua — cả những ngày hoàn thành tốt lẫn những ngày cần điều chỉnh.</p><span class="tiny-label">Full journey</span></article>
+          <article class="feature-card"><span class="feature-icon">⇩</span><h3>Sao lưu & xuất dữ liệu</h3><p>Sao lưu/khôi phục JSON, xuất CSV để tự phân tích thêm và in thành PDF khi cần lưu trữ hoặc tổng kết.</p><span class="tiny-label">Data ownership</span></article>
+          <article class="feature-card"><span class="feature-icon">⌂</span><h3>PWA & đa thiết bị</h3><p>Cài như app từ trình duyệt, dùng trên điện thoại/laptop. Bản tài khoản đã cấu hình có thể đăng nhập và đồng bộ dữ liệu.</p><span class="tiny-label">Flexible access</span></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="muc-tieu">
+      <div class="container goal-layout">
+        <div>
+          <p class="eyebrow">Thiết kế mục tiêu đúng bản chất</p>
+          <h2 class="section-title">Mục tiêu của bạn không cần phải vừa với một chiếc form.</h2>
+          <p class="section-lead">HabitFlow cho phép chọn cách đo theo điều bạn thật sự muốn thay đổi, thay vì ép mọi thứ thành “đã làm/chưa làm”.</p>
+          <div class="goal-types" aria-label="Tám dạng mục tiêu">
+            <div class="goal-type"><span>01</span>Tăng tiến</div><div class="goal-type"><span>02</span>Giảm dần</div>
+            <div class="goal-type"><span>03</span>Tích lũy</div><div class="goal-type"><span>04</span>Duy trì</div>
+            <div class="goal-type"><span>05</span>Giới hạn</div><div class="goal-type"><span>06</span>Tần suất</div>
+            <div class="goal-type"><span>07</span>Chuỗi ngày</div><div class="goal-type"><span>08</span>Cột mốc</div>
+          </div>
+        </div>
+        <div class="goal-board" aria-label="Ví dụ bảng mục tiêu">
+          <div class="goal-board-head"><h3>Mục tiêu quý này</h3><span>Đang tiến triển</span></div>
+          <div class="goal-card"><div class="goal-card-top"><div><b>Đọc 12 cuốn sách</b><br><small>Tích lũy · 8/12 cuốn</small></div><b>67%</b></div><div class="goal-meter"><i style="width:67%"></i></div></div>
+          <div class="goal-card"><div class="goal-card-top"><div><b>Ngủ trước 23:00</b><br><small>Tần suất · 18/24 ngày</small></div><b>75%</b></div><div class="goal-meter"><i style="width:75%"></i></div></div>
+          <div class="goal-card"><div class="goal-card-top"><div><b>Hoàn thiện dự án cá nhân</b><br><small>Cột mốc · 3/4 giai đoạn</small></div><b>75%</b></div><div class="milestones"><div class="milestone done">Ý tưởng</div><div class="milestone done">Bản nháp</div><div class="milestone done">Kiểm thử</div><div class="milestone">Ra mắt</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="phan-tich">
+      <div class="container">
+        <p class="eyebrow">Phân tích để hành động</p>
+        <h2 class="section-title">Dữ liệu không dùng để phán xét. Dữ liệu dùng để <span class="gradient-text">điều chỉnh.</span></h2>
+        <p class="section-lead">Thay vì chỉ đếm dấu tick, HabitFlow giúp bạn nhìn xu hướng và nhận ra những tín hiệu đáng chú ý trong hành trình.</p>
+        <div class="analytics-stage">
+          <div class="analytics-card">
+            <h3>Xu hướng hoàn thành · 30 ngày</h3><p>Minh họa cách hệ thống biến dữ liệu hằng ngày thành một bức tranh dễ đọc.</p>
+            <svg class="line-chart" viewBox="0 0 660 230" role="img" aria-label="Biểu đồ xu hướng hoàn thành tăng dần trong 30 ngày">
+              <defs><linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48e2c2" stop-opacity=".32"/><stop offset="1" stop-color="#48e2c2" stop-opacity="0"/></linearGradient></defs>
+              <path class="grid-line" d="M10 30H650M10 80H650M10 130H650M10 180H650"/>
+              <path class="area-fill" d="M10 177 C60 159,90 169,135 142 S215 151,265 121 S350 126,400 96 S480 105,530 71 S605 79,650 42 L650 210 L10 210Z"/>
+              <path class="trend-line" d="M10 177 C60 159,90 169,135 142 S215 151,265 121 S350 126,400 96 S480 105,530 71 S605 79,650 42"/>
+              <circle class="trend-dot" cx="10" cy="177" r="5"/><circle class="trend-dot" cx="265" cy="121" r="5"/><circle class="trend-dot" cx="400" cy="96" r="5"/><circle class="trend-dot" cx="650" cy="42" r="5"/>
+            </svg>
+            <div class="chart-caption"><span>Ngày 1</span><span>Ngày 10</span><span>Ngày 20</span><span>Ngày 30</span></div>
+          </div>
+          <div class="analytics-card">
+            <h3>Tín hiệu đáng chú ý</h3><p>Gợi ý dựa trên dữ liệu bạn đã ghi.</p>
+            <div class="insights">
+              <div class="insight"><span class="insight-icon">↗</span><div><b>Nhịp tuần này tốt hơn</b><small>Tỷ lệ hoàn thành tăng so với tuần trước.</small></div></div>
+              <div class="insight"><span class="insight-icon">☀</span><div><b>Buổi sáng là khung giờ mạnh</b><small>Bạn thường hoàn thành đều hơn khi bắt đầu sớm.</small></div></div>
+              <div class="insight"><span class="insight-icon">⚑</span><div><b>Một mục tiêu đang quá tải</b><small>Cân nhắc giảm bước tối thiểu trong 7 ngày tới.</small></div></div>
+              <div class="insight"><span class="insight-icon">∞</span><div><b>Chuỗi ổn định: 12 ngày</b><small>Giữ nhịp hiện tại thay vì tăng độ khó quá sớm.</small></div></div>
+            </div>
+          </div>
+        </div>
+        <p class="comparison-note">Lưu ý khoa học: mối tương quan trong dữ liệu cá nhân là tín hiệu để quan sát, không tự động chứng minh quan hệ nguyên nhân–kết quả.</p>
+      </div>
+    </section>
+
+    <section class="section" id="smart-coach">
+      <div class="container coach-layout">
+        <div>
+          <p class="eyebrow">Smart Coach offline</p>
+          <h2 class="section-title">Một lời gợi ý đúng lúc, dựa trên chính hành trình của bạn.</h2>
+          <p class="section-lead">Smart Coach đọc các tín hiệu bạn tự ghi — thói quen, mục tiêu, cảm xúc, năng lượng và nhịp gần đây — để phản hồi theo hướng thực tế, riêng tư và có thể hành động.</p>
+          <div class="coach-points">
+            <div class="coach-point"><i>✓</i><span>Phản hồi nhiều nhóm câu hỏi: động lực, học tập, giấc ngủ, vận động, stress, quản lý thời gian và mục tiêu.</span></div>
+            <div class="coach-point"><i>✓</i><span>Ưu tiên bước nhỏ và có thể làm ngay thay vì lời khuyên chung chung.</span></div>
+            <div class="coach-point"><i>✓</i><span>Có thể hoạt động offline; dữ liệu cá nhân không cần gửi cho một chatbot bên ngoài để tạo gợi ý cơ bản.</span></div>
+          </div>
+        </div>
+        <div class="coach-panel">
+          <div class="coach-head"><span class="coach-avatar">✦</span><div><b>HabitFlow Smart Coach</b><small>Phân tích riêng tư · Offline</small></div><span class="coach-status" aria-label="Đang hoạt động"></span></div>
+          <div class="chat" id="coachChat" aria-live="polite">
+            <div class="bubble bubble-user" id="coachQuestion">Tuần này tôi nên ưu tiên điều gì?</div>
+            <div class="bubble bubble-coach" id="coachAnswer">Bạn đang giữ nhịp tốt với sức khỏe nhưng mục tiêu học tập có dấu hiệu chững lại. Trong 7 ngày tới, hãy giữ nguyên thói quen nước và vận động; chỉ cần thêm 10 phút đọc vào một khung giờ cố định. Mục tiêu là quay lại nhịp, chưa cần tăng tốc.</div>
+          </div>
+          <div class="coach-chips" aria-label="Câu hỏi mẫu">
+            <button class="coach-chip" type="button" data-coach="priority">Tuần này ưu tiên gì?</button>
+            <button class="coach-chip" type="button" data-coach="motivation">Tôi đang mất động lực</button>
+            <button class="coach-chip" type="button" data-coach="restart">Tôi hay bỏ dở</button>
+          </div>
+          <p class="coach-disclaimer">Smart Coach là công cụ phản tư và gợi ý thói quen, không thay thế bác sĩ, chuyên gia tâm lý, tư vấn tài chính hoặc chuyên môn khác.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="so-sanh">
+      <div class="container">
+        <p class="eyebrow">Khác biệt nằm ở trải nghiệm</p>
+        <h2 class="section-title">Từ một file để điền thành một hệ thống để <span class="gradient-text">quay lại mỗi ngày.</span></h2>
+        <p class="section-lead">Excel vẫn rất mạnh khi bạn giỏi công thức và muốn tự xây mọi thứ. HabitFlow phù hợp hơn khi bạn muốn bắt đầu nhanh, thao tác rõ và dùng thoải mái trên điện thoại.</p>
+        <div class="comparison-wrap">
+          <table class="comparison">
+            <thead><tr><th>Tiêu chí</th><th>Template Excel phổ thông</th><th>HabitFlow</th></tr></thead>
+            <tbody>
+              <tr><td>Trải nghiệm hằng ngày</td><td class="neutral">Chọn ô, nhập dữ liệu, cuộn bảng</td><td class="yes">Nút tick, thẻ trực quan, phản hồi tức thì</td></tr>
+              <tr><td>Điện thoại</td><td class="neutral">Có thể dùng nhưng thường phải phóng/thu</td><td class="yes">Responsive, bố cục riêng cho màn hình nhỏ</td></tr>
+              <tr><td>Loại thói quen</td><td class="neutral">Phụ thuộc mẫu và công thức có sẵn</td><td class="yes">Tick, thời lượng, số lượng, điều cần tránh</td></tr>
+              <tr><td>Thiết kế mục tiêu</td><td class="neutral">Thường cần tự sửa bảng/công thức</td><td class="yes">8 mô hình mục tiêu có sẵn</td></tr>
+              <tr><td>Lịch & công việc</td><td class="neutral">Tự dựng hoặc tách nhiều sheet</td><td class="yes">Ngày, tuần, tháng trong cùng hệ thống</td></tr>
+              <tr><td>Phân tích</td><td class="neutral">Biểu đồ tùy mẫu, cần tự duy trì</td><td class="yes">Xu hướng, heatmap, streak, xếp hạng</td></tr>
+              <tr><td>Gợi ý cá nhân</td><td class="neutral">Dữ liệu nằm yên trong ô</td><td class="yes">Smart Coach offline tổng hợp tín hiệu</td></tr>
+              <tr><td>Tùy biến cảm giác sử dụng</td><td class="neutral">Màu ô, font, bố cục sheet</td><td class="yes">Theme, màu nhấn, icon, nhóm và lịch</td></tr>
+              <tr><td>Sao lưu</td><td class="neutral">Lưu file thủ công</td><td class="yes">JSON, CSV, PDF; đồng bộ ở bản tài khoản</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="comparison-note">So sánh theo nhu cầu theo dõi cá nhân hằng ngày, không có nghĩa HabitFlow thay thế Excel trong mọi công việc xử lý bảng tính chuyên sâu.</p>
+      </div>
+    </section>
+
+    <section class="section" id="nhan-san-pham">
+      <div class="container">
+        <p class="eyebrow">Đơn giản từ lúc nhận</p>
+        <h2 class="section-title">Ba bước để bắt đầu hành trình.</h2>
+        <div class="experience-grid">
+          <article class="experience-card"><span class="experience-step">1</span><h3>Liên hệ trực tiếp</h3><p>Nhắn Facebook, Zalo, TikTok hoặc Gmail. Nói rõ thiết bị và nhu cầu để được hướng dẫn chọn phiên bản phù hợp.</p></article>
+          <article class="experience-card"><span class="experience-step">2</span><h3>Nhận file & hướng dẫn</h3><p>Sau khi xác nhận, bạn nhận bộ file HabitFlow cùng hướng dẫn mở, cài như ứng dụng và cách bảo vệ dữ liệu.</p></article>
+          <article class="experience-card"><span class="experience-step">3</span><h3>Tạo hành trình riêng</h3><p>Chọn ngày bắt đầu, thêm mục tiêu đầu tiên, tạo vài thói quen thật sự quan trọng và bắt đầu từ hôm nay.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="uu-dai">
+      <div class="container">
+        <div class="offer">
+          <div class="offer-grid">
+            <div class="offer-copy">
+              <p class="eyebrow">Ưu đãi mở bán</p>
+              <h2>Bạn không mua một bảng để điền. Bạn chọn một nơi để quay lại mỗi ngày.</h2>
+              <p>Một bữa ăn có thể kết thúc trong vài phút. Một hệ thống tốt có thể đồng hành qua hàng trăm ngày bạn đang âm thầm xây lại chính mình.</p>
+              <div class="receive-list">
+                <span><i>✓</i> Bộ HabitFlow bản cá nhân</span>
+                <span><i>✓</i> Hướng dẫn mở và cài PWA</span>
+                <span><i>✓</i> Hướng dẫn sao lưu/khôi phục</span>
+                <span><i>✓</i> Kênh liên hệ trực tiếp khi nhận</span>
+              </div>
+            </div>
+            <div class="price-card">
+              <span class="label">Giá mở bán hiện tại</span>
+              <div class="price"><strong data-business="price">70.000đ</strong><span>/ bản cá nhân</span></div>
+              <button class="btn btn-primary btn-wide" type="button" data-open-offer>Nhận ngay ưu đãi hôm nay</button>
+              <p class="price-note">Hãy nhắn để xác nhận đúng phiên bản và cách nhận trước khi thanh toán.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="hoi-dap">
+      <div class="container">
+        <div style="text-align:center">
+          <p class="eyebrow">Câu hỏi thường gặp</p>
+          <h2 class="section-title" style="margin-inline:auto">Hiểu rõ trước khi bắt đầu.</h2>
+        </div>
+        <div class="faq-list">
+          <details><summary>Tôi không biết lập trình có dùng được không?</summary><div class="faq-answer"><p>Có. HabitFlow được thiết kế để thao tác bằng nút, biểu mẫu và menu trực quan. Bạn không cần sửa mã để tạo thói quen, mục tiêu, công việc hay xem phân tích.</p></div></details>
+          <details><summary>HabitFlow có dùng trên điện thoại và laptop không?</summary><div class="faq-answer"><p>Có. Giao diện tự thích nghi theo màn hình. Trên trình duyệt được hỗ trợ, bạn còn có thể cài dưới dạng PWA để mở gần giống một ứng dụng.</p></div></details>
+          <details><summary>Dữ liệu được lưu như thế nào?</summary><div class="faq-answer"><p>Bản offline lưu dữ liệu trên thiết bị và hỗ trợ sao lưu ra file. Bản tài khoản đã được cấu hình có thể đăng nhập, tách dữ liệu theo người dùng và đồng bộ. Hãy hỏi người bán để nhận đúng bản phù hợp.</p></div></details>
+          <details><summary>Smart Coach có phải ChatGPT chạy bên trong không?</summary><div class="faq-answer"><p>Không. Đây là mô-đun phân tích thông minh offline, dùng dữ liệu bạn đã ghi cùng hệ thống quy tắc/gợi ý được thiết kế sẵn. Ưu điểm là riêng tư và phản hồi nhanh; nó không giả vờ là mô hình AI trực tuyến hay chuyên gia y tế.</p></div></details>
+          <details><summary>Tôi có thể tự đổi giao diện và nội dung theo dõi không?</summary><div class="faq-answer"><p>Có. Bạn có thể thay theme sáng/tối, màu nhấn, icon, nhóm, lịch lặp, đơn vị đo và nhiều trường của thói quen/mục tiêu ngay trong ứng dụng.</p></div></details>
+          <details><summary>Nếu bỏ lỡ vài ngày thì sao?</summary><div class="faq-answer"><p>Hành trình không bị “hỏng”. Bạn có thể xem lại lịch sử, nhận diện lý do, giảm bước tối thiểu và bắt đầu lại. Mục tiêu của HabitFlow là giúp bạn quay lại, không tạo thêm cảm giác tội lỗi.</p></div></details>
+          <details><summary>70.000đ có phải mức giá cuối cùng không?</summary><div class="faq-answer"><p>Đây là mức giá mở bán đang hiển thị trên trang. Bạn nên liên hệ trực tiếp để xác nhận giá, phiên bản, quyền sử dụng và cách bàn giao tại thời điểm mua.</p></div></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-strip" id="lien-he">
+      <div class="container contact-inner">
+        <div><h2>Còn câu hỏi? Nói chuyện trực tiếp với Tuấn Hùng.</h2><p>Chọn kênh thuận tiện nhất. Không cần biết thuật ngữ kỹ thuật.</p></div>
+        <div class="contact-actions">
+          <a class="contact-link" data-contact="facebook" href="https://www.facebook.com/tuanhungdj27/" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a class="contact-link" data-contact="zalo" href="https://zalo.me/0981686335" target="_blank" rel="noopener noreferrer">Zalo · <span data-business="phone">0981686335</span></a>
+          <a class="contact-link" data-contact="tiktok" href="https://www.tiktok.com/@tuanhungsenpai7" target="_blank" rel="noopener noreferrer">TikTok</a>
+          <a class="contact-link" data-contact="email" href="mailto:Tuanhungsenpai7@gmail.com">Gmail</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <span>© <span id="year">2026</span> Cre Tuấn Hùng · HabitFlow VIP</span>
+      <span>Công cụ đồng hành — còn người tạo nên thay đổi vẫn là bạn.</span>
+    </div>
+  </footer>
+
+  <div class="mobile-cta" aria-label="Mua HabitFlow">
+    <button class="btn btn-primary" type="button" data-open-offer>Nhận ưu đãi · <span data-business="price">70.000đ</span></button>
+  </div>
+
+  <dialog id="offerDialog" aria-labelledby="offerTitle">
+    <div class="dialog-body">
+      <button class="icon-btn dialog-close" type="button" data-close-offer aria-label="Đóng cửa sổ">✕</button>
+      <span class="dialog-kicker">Nhận HabitFlow ngay hôm nay</span>
+      <h2 id="offerTitle">Chọn kênh liên hệ thuận tiện nhất.</h2>
+      <p>Nhắn “Mình muốn nhận HabitFlow” để được xác nhận phiên bản và hướng dẫn bàn giao.</p>
+      <div class="dialog-price"><small>Giá mở bán đang hiển thị</small><strong data-business="price">70.000đ</strong></div>
+      <div class="dialog-contacts">
+        <a class="contact-link facebook" data-contact="facebook" href="https://www.facebook.com/tuanhungdj27/" target="_blank" rel="noopener noreferrer">Facebook Tuấn Hùng ↗</a>
+        <a class="contact-link zalo" data-contact="zalo" href="https://zalo.me/0981686335" target="_blank" rel="noopener noreferrer">Zalo 0981686335 ↗</a>
+        <a class="contact-link tiktok" data-contact="tiktok" href="https://www.tiktok.com/@tuanhungsenpai7" target="_blank" rel="noopener noreferrer">TikTok @tuanhungsenpai7 ↗</a>
+        <a class="contact-link email" data-contact="email" href="mailto:Tuanhungsenpai7@gmail.com">Gửi Gmail ↗</a>
+      </div>
+      <div class="copy-row">
+        <button class="btn btn-secondary" type="button" data-copy="phone">Sao chép số Zalo</button>
+        <button class="btn btn-secondary" type="button" data-copy="email">Sao chép Gmail</button>
+      </div>
+      <p class="dialog-note">Bạn sẽ được chuyển thẳng sang kênh đã chọn. Trang này không tự thu thập thông tin cá nhân.</p>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Đã sao chép</div>
+
+  <noscript>
+    <div style="position:fixed;z-index:200;right:12px;bottom:12px;left:12px;padding:14px;color:#fff;background:#111827;border:1px solid #39415c;border-radius:14px;text-align:center">
+      Liên hệ mua HabitFlow: Zalo 0981686335 · Gmail Tuanhungsenpai7@gmail.com
+    </div>
+  </noscript>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* ============================================================
+         VÙNG THÔNG TIN BÁN HÀNG — chỉ cần sửa các dòng bên dưới.
+         ============================================================ */
+      const BUSINESS = Object.freeze({
+        price: '70.000đ',
+        phone: '0981686335',
+        email: 'Tuanhungsenpai7@gmail.com',
+        facebook: 'https://www.facebook.com/tuanhungdj27/',
+        zalo: 'https://zalo.me/0981686335',
+        tiktok: 'https://www.tiktok.com/@tuanhungsenpai7'
+      });
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+      $$('[data-business="price"]').forEach(el => { el.textContent = BUSINESS.price; });
+      $$('[data-business="phone"]').forEach(el => { el.textContent = BUSINESS.phone; });
+      $$('[data-contact="facebook"]').forEach(el => { el.href = BUSINESS.facebook; });
+      $$('[data-contact="zalo"]').forEach(el => { el.href = BUSINESS.zalo; });
+      $$('[data-contact="tiktok"]').forEach(el => { el.href = BUSINESS.tiktok; });
+      $$('[data-contact="email"]').forEach(el => { el.href = `mailto:${BUSINESS.email}`; });
+      $('#year').textContent = String(new Date().getFullYear());
+
+      const topbar = $('#topbar');
+      const updateTopbar = () => topbar.classList.toggle('scrolled', window.scrollY > 8);
+      updateTopbar();
+      window.addEventListener('scroll', updateTopbar, { passive: true });
+
+      const themeToggle = $('#themeToggle');
+      let savedTheme = null;
+      try { savedTheme = localStorage.getItem('habitflow-landing-theme'); } catch (error) { /* chế độ riêng tư */ }
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.dataset.theme = savedTheme;
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        document.documentElement.dataset.theme = 'light';
+      }
+      const syncThemeLabel = () => {
+        const light = document.documentElement.dataset.theme === 'light';
+        themeToggle.setAttribute('aria-label', light ? 'Chuyển sang giao diện tối' : 'Chuyển sang giao diện sáng');
+        themeToggle.setAttribute('title', light ? 'Dùng giao diện tối' : 'Dùng giao diện sáng');
+      };
+      syncThemeLabel();
+      themeToggle.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('habitflow-landing-theme', next); } catch (error) { /* không bắt buộc */ }
+        syncThemeLabel();
+      });
+
+      const demoButtons = $$('.demo-habit');
+      const progressOrbit = $('#progressOrbit');
+      const progressPercent = $('#progressPercent');
+      const progressCount = $('#progressCount');
+      const demoMessage = $('#demoMessage');
+      const encouragement = [
+        'Bắt đầu là phần khó nhất. Bạn vừa làm được rồi.',
+        'Một bước nhỏ đã được ghi nhận. Cứ đi tiếp.',
+        'Nhịp đang hình thành — đều đặn quan trọng hơn hoàn hảo.',
+        'Bạn đang rất gần một ngày trọn vẹn.',
+        'Hoàn thành hôm nay. Ngày mai chỉ cần quay lại.'
+      ];
+      const updateDemo = () => {
+        const done = demoButtons.filter(button => button.getAttribute('aria-pressed') === 'true').length;
+        const percent = Math.round((done / demoButtons.length) * 100);
+        progressOrbit.style.setProperty('--progress', String(percent));
+        progressOrbit.setAttribute('aria-label', `Tiến độ hôm nay ${percent} phần trăm`);
+        progressPercent.textContent = `${percent}%`;
+        progressCount.textContent = `${done}/${demoButtons.length} hoàn thành`;
+        demoMessage.textContent = encouragement[done];
+      };
+      demoButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const next = button.getAttribute('aria-pressed') !== 'true';
+          button.setAttribute('aria-pressed', String(next));
+          $('.demo-check', button).textContent = next ? '✓' : '';
+          updateDemo();
+        });
+      });
+      updateDemo();
+
+      const coachResponses = {
+        priority: {
+          question: 'Tuần này tôi nên ưu tiên điều gì?',
+          answer: 'Bạn đang giữ nhịp tốt với sức khỏe nhưng mục tiêu học tập có dấu hiệu chững lại. Trong 7 ngày tới, hãy giữ nguyên thói quen nước và vận động; chỉ cần thêm 10 phút đọc vào một khung giờ cố định. Mục tiêu là quay lại nhịp, chưa cần tăng tốc.'
+        },
+        motivation: {
+          question: 'Tôi đang mất động lực, phải làm sao?',
+          answer: 'Đừng dùng cảm giác hôm nay để kết luận về cả hành trình. Hãy hạ thói quen quan trọng nhất xuống phiên bản 2 phút và hoàn thành nó trước. Sau đó ghi nhanh mức năng lượng; nếu tình trạng kéo dài, ưu tiên nghỉ ngơi và tìm hỗ trợ phù hợp.'
+        },
+        restart: {
+          question: 'Tôi hay bỏ dở giữa chừng.',
+          answer: 'Dữ liệu cho thấy vấn đề thường nằm ở nhịp quá nặng, không phải ở con người bạn. Hãy chọn một “mức sàn” dễ đến mức khó từ chối, lên lịch cho 3 ngày cụ thể và xem lần quay lại là một chiến thắng — không phải bắt đầu từ số 0.'
+        }
+      };
+      $$('[data-coach]').forEach(button => {
+        button.addEventListener('click', () => {
+          const response = coachResponses[button.dataset.coach];
+          if (!response) return;
+          $('#coachQuestion').textContent = response.question;
+          $('#coachAnswer').textContent = response.answer;
+        });
+      });
+
+      const dialog = $('#offerDialog');
+      const openOffer = () => {
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+          document.body.classList.add('modal-open');
+        } else {
+          window.location.href = BUSINESS.facebook;
+        }
+      };
+      const closeOffer = () => {
+        if (dialog.open) dialog.close();
+        document.body.classList.remove('modal-open');
+      };
+      $$('[data-open-offer]').forEach(button => button.addEventListener('click', openOffer));
+      $$('[data-close-offer]').forEach(button => button.addEventListener('click', closeOffer));
+      dialog.addEventListener('click', event => {
+        const rect = dialog.getBoundingClientRect();
+        const outside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+        if (outside) closeOffer();
+      });
+      dialog.addEventListener('close', () => document.body.classList.remove('modal-open'));
+
+      const toast = $('#toast');
+      let toastTimer;
+      const showToast = message => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+      };
+      const fallbackCopy = text => {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand('copy');
+        area.remove();
+        return ok;
+      };
+      $$('[data-copy]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const text = button.dataset.copy === 'phone' ? BUSINESS.phone : BUSINESS.email;
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(text);
+            } else if (!fallbackCopy(text)) {
+              throw new Error('Không thể sao chép tự động');
+            }
+            showToast(`Đã sao chép: ${text}`);
+          } catch (error) {
+            showToast(`Hãy sao chép thủ công: ${text}`);
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
